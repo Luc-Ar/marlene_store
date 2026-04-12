@@ -1,3 +1,16 @@
+<?php
+session_start();
+require_once 'config/Database.php';
+
+try {
+  $conexion = Database::getConexion();
+  // Traemos los productos activos
+  $resultado = $conexion->query("SELECT * FROM productos WHERE activo = 1 ORDER BY id DESC");
+  $productos = $resultado->fetch_all(MYSQLI_ASSOC);
+} catch (Exception $e) {
+  die("Error al conectar con el catálogo: " . $e->getMessage());
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 
