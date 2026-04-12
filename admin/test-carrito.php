@@ -1,24 +1,24 @@
 <?php
 session_start();
 
-// Simulamos que el usuario eligió un par de productos
+// Usamos solo IDs que SI existen en tu tabla (1 y 2)
 $_SESSION['carrito'] = [
     [
         'id' => 1,
-        'nombre' => 'Mochila Marlene Reforzada',
-        'precio' => 12500.50,
+        'nombre' => 'Mochila Kuromi',
+        'precio' => 15000.00,
         'cantidad' => 1,
-        'peso' => 1.200
+        'peso' => 1.000
     ],
     [
-        'id' => 5,
-        'nombre' => 'Cartuchera Estampada',
-        'precio' => 3200.00,
-        'cantidad' => 2,
-        'peso' => 0.150
+        'id' => 2,
+        'nombre' => 'Mochila Frozen',
+        'precio' => 15000.00,
+        'cantidad' => 1,
+        'peso' => 1.000
     ]
 ];
 
-echo "<h1>Carrito de prueba cargado</h1>";
-echo "<p>Productos en sesión: " . count($_SESSION['carrito']) . "</p>";
+echo "<h1>Carrito de prueba corregido</h1>";
+echo "<p>Productos listos: Mochila Kuromi y Frozen</p>";
 echo "<a href='procesar-venta.php'>Simular Finalizar Compra >></a>";
