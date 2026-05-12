@@ -4,24 +4,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Marlen Velaz STORE</title>
+  <title>Marlene STORE</title>
   <link
     href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600;700;900&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+
+  <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 
 <body>
 
-  <!-- ─── NAV ─── -->
   <nav>
-    <a href="#" class="logo-wrap">
-      <span class="logo-script">Marlene Velazquez</span>
+    <a href="index.php" class="logo-wrap">
+      <span class="logo-script">Marlene</span>
       <span class="logo-store">STORE</span>
     </a>
     <ul class="nav-links">
       <li><a href="#categorias">Categorías</a></li>
-      <li><a href="#productos">Productos</a></li>
+      <li><a href="catalogo.php">Productos</a></li>
       <li><a href="#envios">Envíos</a></li>
       <li><a href="#contacto">Contacto</a></li>
       <li><a href="#contacto" class="nav-cta">Consultar</a></li>
@@ -32,7 +32,7 @@
   <section class="hero">
     <div class="hero-left">
       <p class="hero-tag">✦ Bienvenida a nuestra tienda</p>
-      <h1 class="hero-title">Marlene Velazquez</h1>
+      <h1 class="hero-title">Marlene</h1>
       <p class="hero-store">STORE</p>
       <div class="hero-divider"></div>
       <p class="hero-desc">Mochilas, termos, calzado, bazar y tecnología.<br>Todo lo que necesitás, con la calidad y el
@@ -71,7 +71,6 @@
     <div class="ribbon-item"><span class="dot"></span>🔍 Seguimiento de tu pedido</div>
     <div class="ribbon-item"><span class="dot"></span>💳 Efectivo · Transferencia · Tarjeta</div>
   </div>
-
   <!-- ─── CATEGORÍAS ─── -->
   <section class="cats-section" id="categorias">
     <p class="s-eyebrow">✦ Lo que encontrás</p>
@@ -367,7 +366,7 @@
     <div class="footer-top">
       <div class="footer-brand">
         <div class="logo-wrap">
-          <span class="logo-script">Marlene Velaz</span>
+          <span class="logo-script">Marlene</span>
           <span class="logo-store">STORE</span>
         </div>
         <p>Tu tienda de confianza. Mochilas, termos, calzado, bazar y tecnología para toda la familia.</p>
@@ -393,7 +392,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2025 Marlene Velaz STORE — Todos los derechos reservados</p>
+      <p>© 2026 Marlene STORE — Todos los derechos reservados</p>
       <div class="socials">
         <a href="#" class="social-btn">📱</a>
         <a href="#" class="social-btn">📷</a>
@@ -408,9 +407,8 @@
     <span>WhatsApp</span>
   </a>
 
-  <!-- ─── SCRIPT ─── -->
-  <script src="script.js"></script>
 
+  <script src="assets/js/script.js"></script>
 </body>
 
 </html>
