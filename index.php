@@ -76,50 +76,69 @@
     <p class="s-eyebrow">✦ Lo que encontrás</p>
     <h2 class="s-title">Nuestras Categorías</h2>
     <p class="s-sub">De todo para la familia, el hogar y el día a día.</p>
+
     <div class="cats-grid">
 
-      <a href="catalogo.html#sec-infantiles" class="cat-card" style="text-decoration:none;">
+      <a href="catalogo.php?cat=infantil" class="cat-card" style="text-decoration:none;">
         <span class="cat-emoji">🎒</span>
         <p class="cat-name">Mochilas Infantiles</p>
         <p class="cat-desc">Diseños divertidos y resistentes</p>
       </a>
 
-      <div class="cat-card"><span class="cat-emoji">📚</span>
+      <a href="catalogo.php?cat=escolar" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">📚</span>
         <p class="cat-name">Mochilas Escolares</p>
         <p class="cat-desc">Amplias para todo el material</p>
-      </div>
-      <div class="cat-card"><span class="cat-emoji">💼</span>
+      </a>
+
+      <a href="catalogo.php?cat=adulto" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">💼</span>
         <p class="cat-name">Mochilas Adultos</p>
         <p class="cat-desc">Estilo y funcionalidad</p>
-      </div>
-      <div class="cat-card"><span class="cat-emoji">🍶</span>
+      </a>
+
+      <a href="catalogo.php?cat=termos_infantiles" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">🍶</span>
         <p class="cat-name">Termos Infantiles</p>
         <p class="cat-desc">Coloridos y seguros para nenes</p>
-      </div>
-      <div class="cat-card"><span class="cat-emoji">♨️</span>
+      </a>
+
+      <a href="catalogo.php?cat=termos_adultos" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">♨️</span>
         <p class="cat-name">Termos Adultos</p>
         <p class="cat-desc">Varios tamaños, máxima temperatura</p>
-      </div>
-      <div class="cat-card"><span class="cat-emoji">👟</span>
+      </a>
+
+      <a href="catalogo.php?cat=calzado" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">👟</span>
         <p class="cat-name">Zapatos y Zapatillas</p>
         <p class="cat-desc">Para toda la familia</p>
-      </div>
-      <div class="cat-card"><span class="cat-emoji">🍴</span>
+      </a>
+
+      <a href="catalogo.php?cat=bazar" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">🍴</span>
         <p class="cat-name">Bazar</p>
         <p class="cat-desc">Cubiertos, fuentes y más</p>
-      </div>
-      <div class="cat-card"><span class="cat-emoji">🔋</span>
+      </a>
+
+      <a href="catalogo.php?cat=tecnologia" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">🔋</span>
         <p class="cat-name">Cargadores Portátiles</p>
         <p class="cat-desc">Power banks para todos los días</p>
-      </div>
-      <div class="cat-card"><span class="cat-emoji">🔧</span>
+      </a>
+
+      <a href="catalogo.php?cat=herramientas" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">🔧</span>
         <p class="cat-name">Cajitas de Herramientas</p>
         <p class="cat-desc">Sets completos para el hogar</p>
-      </div>
-      <div class="cat-card"><span class="cat-emoji">🔊</span>
+      </a>
+
+      <a href="catalogo.php?cat=parlantes" class="cat-card" style="text-decoration:none;">
+        <span class="cat-emoji">🔊</span>
         <p class="cat-name">Parlantes</p>
         <p class="cat-desc">Bluetooth y portátiles</p>
-      </div>
+      </a>
+
     </div>
   </section>
 

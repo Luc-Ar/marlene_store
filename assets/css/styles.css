@@ -35,48 +35,30 @@ body {
 /* ─── LOGO ─── */
 .logo-wrap {
   display: flex;
-  flex-direction: column;
-  /* Apilamos Marlene arriba y STORE abajo */
-  align-items: stretch;
-  /* Intentamos que ocupen el ancho disponible */
-  gap: 0;
-  /* Quitamos el espacio sobrante */
+  align-items: baseline;
+  gap: 3rem;
   text-decoration: none;
-  width: max-content;
-  /* El contenedor se ajusta al texto más largo */
 }
 
 .logo-script {
   font-family: 'Great Vibes', cursive;
-  font-size: 6rem;
-  /* Ajustá el tamaño a tu gusto */
+  font-size: 4rem;
   color: var(--marron);
-  line-height: 0.9;
-  /* Pegamos un poco más el texto */
-  text-align: justify;
-  display: block;
+  line-height: 1;
+  letter-spacing: 2px;
 }
 
 .logo-store {
   font-family: 'Montserrat', sans-serif;
   font-weight: 900;
-  font-size: 0.8rem;
-  /* Un poco más pequeño para que destaque el espaciado */
+  font-size: 1.75rem;
+  letter-spacing: 1.6rem;
   color: var(--dorado);
   text-transform: uppercase;
-
-  /* ATRIBUTOS CLAVE PARA EL JUSTIFICADO */
-  display: flex;
-  justify-content: first baseline;
-  /* Distribuye el espacio si usaras letras separadas */
-  letter-spacing: 14px;
-  /* ← MODIFICÁ ESTE VALOR hasta que llegue al borde derecho */
-
-  margin-top: 5px;
-  text-align: center;
-  padding-left: 14px;
-  /* Compensamos el letter-spacing para que quede centrado */
+  align-self: center;
+  margin-top: 4px;
 }
+
 
 /* ─── NAV ─── */
 nav {
@@ -89,6 +71,7 @@ nav {
   align-items: center;
   justify-content: space-between;
   padding: 20px 6%;
+  padding-bottom: 2px;
   transition: background 0.4s, box-shadow 0.4s;
   background: rgba(250, 246, 241, 0.92);
   backdrop-filter: blur(12px);
@@ -197,21 +180,25 @@ nav {
 
 .hero-title {
   font-family: 'Great Vibes', cursive;
-  font-size: clamp(3.5rem, 6vw, 5.5rem);
+  font-size: clamp(5rem, 6vw, 5.5rem);
   line-height: 1.05;
   color: var(--marron);
   margin-bottom: 6px;
+  margin-right: auto;
+  margin-left: 2rem;
+  letter-spacing: 1rem;
   animation: fadeUp 0.8s ease both 0.2s;
 }
 
 .hero-store {
   font-family: 'Montserrat', sans-serif;
   font-weight: 900;
-  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-size: clamp(3rem, 3vw, 2.6rem);
   letter-spacing: 10px;
   color: var(--rosa-pro);
   text-transform: uppercase;
   margin-bottom: 32px;
+  letter-spacing: 1.6rem;
   animation: fadeUp 0.8s ease both 0.3s;
 }
 
@@ -427,10 +414,10 @@ nav {
 /* ─── RIBBON ─── */
 .ribbon {
   background: var(--marron);
-  padding: 14px 6%;
+  padding: 15px 1%;
   display: flex;
   justify-content: center;
-  gap: 60px;
+  gap: 21px;
   flex-wrap: wrap;
   overflow: hidden;
 }
@@ -456,7 +443,7 @@ nav {
 
 /* ─── SECCIONES BASE ─── */
 section {
-  padding: 100px 6%;
+  padding: 40px 6%;
 }
 
 .s-eyebrow {
@@ -466,15 +453,17 @@ section {
   letter-spacing: 4px;
   text-transform: uppercase;
   color: var(--dorado);
-  margin-bottom: 14px;
+
+  margin-bottom: 6px;
 }
 
 .s-title {
   font-family: 'Great Vibes', cursive;
-  font-size: clamp(2.8rem, 4.5vw, 4rem);
+  font-size: clamp(3rem, 4.5vw, 4rem);
   color: var(--marron);
-  line-height: 1.1;
-  margin-bottom: 16px;
+  line-height: 1.5;
+  letter-spacing: 6px;
+  margin-bottom: 10px;
 }
 
 .s-sub {
@@ -905,7 +894,7 @@ footer {
 
 .footer-brand .logo-script {
   color: var(--crema);
-  font-size: 2.8rem;
+  font-size: 3rem;
 }
 
 .footer-brand .logo-store {
