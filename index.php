@@ -1,3 +1,18 @@
+<?php
+// 1. Conexión (Ajustá con tus datos de MariaDB en Kali)
+$conexion = mysqli_connect("localhost", "root", "", "CandeDB");
+
+// 2. Traer los productos
+$query = "SELECT * FROM productos";
+
+// Si el usuario eligió una categoría, filtramos
+if (isset($_GET['cat'])) {
+  $cat = mysqli_real_escape_string($conexion, $_GET['cat']);
+  $query = "SELECT * FROM productos WHERE categoria = '$cat'";
+}
+
+$resultado = mysqli_query($conexion, $query);
+?>
 <!DOCTYPE html>
 <html lang="es">
 
