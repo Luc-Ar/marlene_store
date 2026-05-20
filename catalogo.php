@@ -1,5 +1,6 @@
 <?php
 // 1. Conexión
+// $conexion = mysqli_connect("localhost", "admin_marlene", "marlene123", "marlene_store");
 require_once __DIR__ . '/config/Database.php';
 $conexion = Database::getConexion();
 

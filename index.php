@@ -1,8 +1,8 @@
 <?php
 // 1. Conexión (Ajustá con tus datos de MariaDB en Kali)
+// $conexion = mysqli_connect("localhost", "admin_marlene", "marlene123", "marlene_store");
 require_once __DIR__ . '/config/Database.php';
 $conexion = Database::getConexion();
-
 if (!$conexion) {
   die("Error de conexión: " . mysqli_connect_error());
 }

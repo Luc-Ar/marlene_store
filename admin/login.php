@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php if ($error) echo "<div class='err'>$error</div>"; ?>
     <form method="POST">
       <input type="text" name="usuario" placeholder="Usuario" required>
-      <input type="password" name="password" placeholder="Contraseña" required>
+      <input type="password" name="password" placeholder="Contraseña">
       <button type="submit">INGRESAR</button>
     </form>
   </div>
