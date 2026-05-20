@@ -1,6 +1,10 @@
 <?php
 // 1. Conexión (Ajustá con tus datos de MariaDB en Kali)
-$conexion = mysqli_connect("localhost", "root", "", "CandeDB");
+$conexion = mysqli_connect("localhost", "admin_marlene", "marlene123", "marlene_store");
+
+if (!$conexion) {
+  die("Error de conexión: " . mysqli_connect_error());
+}
 
 // 2. Traer los productos
 $query = "SELECT * FROM productos";
