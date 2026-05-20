@@ -1,27 +1,29 @@
 <?php
-// 1. Conexión
-// $conexion = mysqli_connect("localhost", "admin_marlene", "marlene123", "marlene_store");
+// Conexión
 require_once __DIR__ . '/config/Database.php';
 $conexion = Database::getConexion();
 
-if (!$conexion) {
-  die("Error de conexión: " . mysqli_connect_error());
-}
-
-// --- SOLUCIÓN ERROR ROJO: Definimos la variable ---
+// Categoría seleccionada
 $categoria_seleccionada = isset($_GET['cat']) ? $_GET['cat'] : '';
 
-// 2. Consulta
-$query = "SELECT * FROM productos";
-$resultado = mysqli_query($conexion, $query);
-
-if (!$resultado) {
-  die("Error en la consulta SQL: " . mysqli_error($conexion));
+// Consulta con prepared statements
+if (isset($_GET['cat'])) {
+  $stmt = $conexion->prepare("
+        SELECT p.* FROM productos p
+        INNER JOIN categorias c ON p.categoria = c.id
+        WHERE c.slug = ? AND p.activo = 1
+    ");
+  $stmt->bind_param("s", $_GET['cat']);
+} else {
+  $stmt = $conexion->prepare("SELECT * FROM productos WHERE activo = 1");
 }
 
-// 3. Carga del Array
+$stmt->execute();
+$resultado = $stmt->get_result();
+
+// Cargar array
 $productos = [];
-while ($fila = mysqli_fetch_assoc($resultado)) {
+while ($fila = $resultado->fetch_assoc()) {
   $productos[] = $fila;
 }
 ?>

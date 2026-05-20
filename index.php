@@ -8,15 +8,18 @@ if (!$conexion) {
 }
 
 // 2. Traer los productos
-$query = "SELECT * FROM productos";
+require_once __DIR__ . '/config/Database.php';
+$conexion = Database::getConexion();
 
-// Si el usuario eligió una categoría, filtramos
 if (isset($_GET['cat'])) {
-  $cat = mysqli_real_escape_string($conexion, $_GET['cat']);
-  $query = "SELECT * FROM productos WHERE categoria = '$cat'";
+  $stmt = $conexion->prepare("SELECT * FROM productos WHERE categoria = ? AND activo = 1");
+  $stmt->bind_param("s", $_GET['cat']);
+} else {
+  $stmt = $conexion->prepare("SELECT * FROM productos WHERE activo = 1");
 }
 
-$resultado = mysqli_query($conexion, $query);
+$stmt->execute();
+$resultado = $stmt->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -99,19 +102,19 @@ $resultado = mysqli_query($conexion, $query);
 
     <div class="cats-grid">
 
-      <a href="catalogo.php?cat=infantil" class="cat-card" style="text-decoration:none;">
+      <a href="catalogo.php?cat=mochilas-infantiles" class="cat-card" style="text-decoration:none;">
         <span class="cat-emoji">🎒</span>
         <p class="cat-name">Mochilas Infantiles</p>
         <p class="cat-desc">Diseños divertidos y resistentes</p>
       </a>
 
-      <a href="catalogo.php?cat=escolar" class="cat-card" style="text-decoration:none;">
+      <a href="catalogo.php?cat=mochilas-escolares" class="cat-card" style="text-decoration:none;">
         <span class="cat-emoji">📚</span>
         <p class="cat-name">Mochilas Escolares</p>
         <p class="cat-desc">Amplias para todo el material</p>
       </a>
 
-      <a href="catalogo.php?cat=adulto" class="cat-card" style="text-decoration:none;">
+      <a href="catalogo.php?cat=mochilas-adultos" class="cat-card" style="text-decoration:none;">
         <span class="cat-emoji">💼</span>
         <p class="cat-name">Mochilas Adultos</p>
         <p class="cat-desc">Estilo y funcionalidad</p>
@@ -129,7 +132,7 @@ $resultado = mysqli_query($conexion, $query);
         <p class="cat-desc">Varios tamaños, máxima temperatura</p>
       </a>
 
-      <a href="catalogo.php?cat=calzado" class="cat-card" style="text-decoration:none;">
+      <a href="catalogo.php?cat=zapatillas" class="cat-card" style="text-decoration:none;">
         <span class="cat-emoji">👟</span>
         <p class="cat-name">Zapatos y Zapatillas</p>
         <p class="cat-desc">Para toda la familia</p>
@@ -141,7 +144,7 @@ $resultado = mysqli_query($conexion, $query);
         <p class="cat-desc">Cubiertos, fuentes y más</p>
       </a>
 
-      <a href="catalogo.php?cat=tecnologia" class="cat-card" style="text-decoration:none;">
+      <a href="catalogo.php?cat=cargadores" class="cat-card" style="text-decoration:none;">
         <span class="cat-emoji">🔋</span>
         <p class="cat-name">Cargadores Portátiles</p>
         <p class="cat-desc">Power banks para todos los días</p>
