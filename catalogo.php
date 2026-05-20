@@ -65,29 +65,19 @@ while ($fila = $resultado->fetch_assoc()) {
           <h2>👶 Infantiles</h2>
         </div>
         <div class="catalogo-grid">
-          <?php
-          $hay_productos = false;
-          foreach ($productos as $p):
-            // LIMPIEZA TOTAL: quitamos espacios raros y pasamos a minúsculas
-            $subcat_db = isset($p['subcategoria']) ? strtolower(trim($p['subcategoria'])) : '';
-
-            if ($subcat_db == 'infantil'):
-              $hay_productos = true;
-          ?>
+          <?php foreach ($productos as $p): ?>
+            <?php if (isset($p['subcategoria']) && strtolower(trim($p['subcategoria'])) == 'escolar'): ?>
               <div class="cat-prod-card">
                 <div class="cat-prod-img">
                   <img src="<?= $p['imagen_principal'] ?>" alt="<?= htmlspecialchars($p['nombre']) ?>">
                 </div>
                 <div class="cat-prod-body">
-                  <p class="cat-prod-sub">Infantil</p>
+                  <p class="cat-prod-sub">Escolar</p>
                   <h3 class="cat-prod-name"><?= htmlspecialchars($p['nombre']) ?></h3>
                   <p class="cat-prod-desc"><?= htmlspecialchars($p['descripcion_corta']) ?></p>
                   <div class="cat-prod-foot">
                     <span class="cat-prod-precio">$<?= number_format($p['precio'], 0, ',', '.') ?></span>
-                    <button class="cat-prod-btn-agregar"
-                      onclick="agregarAlCarrito(this, '<?= addslashes($p['nombre']) ?>', '<?= $p['imagen_principal'] ?>', 'Infantil', <?= $p['precio'] ?>)">
-                      + Agregar
-                    </button>
+                  <a href="producto.php?id=<?= $p['id'] ?>" class="cat-prod-btn-agregar">Ver producto</a>
                   </div>
                 </div>
               </div>
@@ -136,18 +126,18 @@ while ($fila = $resultado->fetch_assoc()) {
       </div>
       <div class="catalogo-grid">
         <?php foreach ($productos as $p): ?>
-          <?php if (isset($p['subcategoria']) && strtolower($p['subcategoria']) == 'adulto'): ?>
+          <?php if (isset($p['subcategoria']) && strtolower(trim($p['subcategoria'])) == 'adulto'): ?>
             <div class="cat-prod-card">
               <div class="cat-prod-img">
-                <img src="imágenes/<?= $p['imagen'] ?>" alt="<?= htmlspecialchars($p['nombre']) ?>">
+                <img src="<?= $p['imagen_principal'] ?>" alt="<?= htmlspecialchars($p['nombre']) ?>">
               </div>
               <div class="cat-prod-body">
                 <p class="cat-prod-sub">Adulto</p>
                 <h3 class="cat-prod-name"><?= htmlspecialchars($p['nombre']) ?></h3>
-                <p class="cat-prod-desc"><?= htmlspecialchars($p['descripcion']) ?></p>
+                <p class="cat-prod-desc"><?= htmlspecialchars($p['descripcion_corta']) ?></p>
                 <div class="cat-prod-foot">
                   <span class="cat-prod-precio">$<?= number_format($p['precio'], 0, ',', '.') ?></span>
-                  <button class="cat-prod-btn-agregar" onclick="agregarAlCarrito(this, '<?= addslashes($p['nombre']) ?>', 'imágenes/<?= $p['imagen'] ?>', 'Adulto', <?= $p['precio'] ?>)">+ Agregar</button>
+                  <a href="producto.php?id=<?= $p['id'] ?>" class="cat-prod-btn-agregar">Ver producto</a>
                 </div>
               </div>
             </div>
