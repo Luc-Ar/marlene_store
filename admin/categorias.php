@@ -166,8 +166,13 @@ $resultado = $conexion->query($query);
                                 </span>
                             </td>
                             <td style="white-space: nowrap;">
-                                <a href="productos.php?categoria=<?= $cat['id'] ?>&ver=activos" class="btn-edit" style="background: #C9A96E; color: white; border: none;">Ver Productos</a>
+                                <a href="productos.php?categoria=<?= $cat['id'] ?>" class="btn-edit" style="background:#C9A96E;color:white;border:none;">Ver Productos</a>
                                 <a href="categoria-editar.php?id=<?= $cat['id'] ?>" class="btn-edit">Editar</a>
+                                <a href="categoria-toggle.php?id=<?= $cat['id'] ?>" class="btn-edit"
+                                    style="background:<?= $cat['activo'] ? '#fef0f0' : '#eaf3de' ?>; color:<?= $cat['activo'] ? '#c0392b' : '#3B6D11' ?>; border:none;"
+                                    onclick="return confirm('¿Confirmar cambio de estado?')">
+                                    <?= $cat['activo'] ? '⏸ Pausar' : '▶ Activar' ?>
+                                </a>
                             </td>
                         </tr>
                     <?php endwhile; ?>

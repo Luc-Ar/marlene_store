@@ -1,5 +1,5 @@
 /* =========================================
-   MARLENE VELAZQUEZ STORE — catalogo.js
+   MARLENE STORE — catalogo.js
    ========================================= */
 
 const WA_NUMBER = '5493704097831';
@@ -149,30 +149,22 @@ async function enviarPorWhatsapp() {
 }
 
 // ─── Filtros por subcategoría ───
+
 document.addEventListener('DOMContentLoaded', () => {
 
-  const filtros = [
-    { label: 'Todos', id: null },
-    { label: '🎒 Infantiles', id: 'sec-infantiles' },
-    { label: '📚 Escolares', id: 'sec-escolares' },
-    { label: '💼 Adultos', id: 'sec-adultos' },
-  ];
+  // ─── Filtros (botones generados por PHP desde BD) ───
+  const secciones = document.querySelectorAll('.catalogo-section');
 
-  const secciones = ['sec-infantiles', 'sec-escolares', 'sec-adultos'];
-  const container = document.getElementById('filtros-container');
-
-  filtros.forEach(f => {
-    const btn = document.createElement('button');
-    btn.className = 'filtro-btn' + (f.id === null ? ' activo' : '');
-    btn.textContent = f.label;
+  document.querySelectorAll('.filtro-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
       btn.classList.add('activo');
+
+      const seccion = btn.dataset.seccion;
       secciones.forEach(s => {
-        document.getElementById(s).classList.toggle('oculto', f.id !== null && s !== f.id);
+        s.classList.toggle('oculto', seccion !== 'todos' && s.id !== seccion);
       });
     });
-    container.appendChild(btn);
   });
 
   // ─── Animación de entrada ───
