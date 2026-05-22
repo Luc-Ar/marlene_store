@@ -415,30 +415,174 @@
 
   <script>
     const ZONAS = {
-      'Formosa': { zona: 'Zona 1 — Local', oca: 1800, correo: 1500, diasOca: '1 a 2 días hábiles', diasCorreo: '1 a 3 días hábiles' },
-      'Chaco': { zona: 'Zona 1 — Cercana', oca: 2200, correo: 1900, diasOca: '1 a 3 días hábiles', diasCorreo: '2 a 4 días hábiles' },
-      'Misiones': { zona: 'Zona 1 — Cercana', oca: 2400, correo: 2000, diasOca: '2 a 3 días hábiles', diasCorreo: '2 a 4 días hábiles' },
-      'Salta': { zona: 'Zona 1 — Cercana', oca: 2400, correo: 2000, diasOca: '2 a 3 días hábiles', diasCorreo: '2 a 4 días hábiles' },
-      'Jujuy': { zona: 'Zona 1 — Cercana', oca: 2400, correo: 2000, diasOca: '2 a 3 días hábiles', diasCorreo: '2 a 4 días hábiles' },
-      'Santiago del Estero': { zona: 'Zona 2 — Interior', oca: 2800, correo: 2400, diasOca: '2 a 4 días hábiles', diasCorreo: '3 a 5 días hábiles' },
-      'Tucumán': { zona: 'Zona 2 — Interior', oca: 2800, correo: 2400, diasOca: '2 a 4 días hábiles', diasCorreo: '3 a 5 días hábiles' },
-      'Catamarca': { zona: 'Zona 2 — Interior', oca: 3000, correo: 2600, diasOca: '3 a 5 días hábiles', diasCorreo: '3 a 6 días hábiles' },
-      'Corrientes': { zona: 'Zona 2 — Interior', oca: 2800, correo: 2400, diasOca: '2 a 4 días hábiles', diasCorreo: '3 a 5 días hábiles' },
-      'Entre Ríos': { zona: 'Zona 2 — Interior', oca: 3000, correo: 2600, diasOca: '3 a 5 días hábiles', diasCorreo: '3 a 6 días hábiles' },
-      'Córdoba': { zona: 'Zona 2 — Interior', oca: 3200, correo: 2800, diasOca: '3 a 5 días hábiles', diasCorreo: '4 a 6 días hábiles' },
-      'Santa Fe': { zona: 'Zona 2 — Interior', oca: 3200, correo: 2800, diasOca: '3 a 5 días hábiles', diasCorreo: '4 a 6 días hábiles' },
-      'La Rioja': { zona: 'Zona 2 — Interior', oca: 3200, correo: 2800, diasOca: '3 a 5 días hábiles', diasCorreo: '4 a 6 días hábiles' },
-      'San Juan': { zona: 'Zona 3 — Oeste', oca: 3600, correo: 3200, diasOca: '4 a 6 días hábiles', diasCorreo: '5 a 7 días hábiles' },
-      'Mendoza': { zona: 'Zona 3 — Oeste', oca: 3600, correo: 3200, diasOca: '4 a 6 días hábiles', diasCorreo: '5 a 7 días hábiles' },
-      'San Luis': { zona: 'Zona 3 — Oeste', oca: 3600, correo: 3200, diasOca: '4 a 6 días hábiles', diasCorreo: '5 a 7 días hábiles' },
-      'Buenos Aires': { zona: 'Zona 3 — Centro', oca: 3800, correo: 3400, diasOca: '3 a 5 días hábiles', diasCorreo: '4 a 7 días hábiles' },
-      'Ciudad de Buenos Aires': { zona: 'Zona 3 — CABA', oca: 3800, correo: 3400, diasOca: '3 a 5 días hábiles', diasCorreo: '4 a 7 días hábiles' },
-      'La Pampa': { zona: 'Zona 3 — Centro', oca: 4000, correo: 3600, diasOca: '4 a 6 días hábiles', diasCorreo: '5 a 7 días hábiles' },
-      'Neuquén': { zona: 'Zona 4 — Patagonia', oca: 4800, correo: 4400, diasOca: '5 a 7 días hábiles', diasCorreo: '6 a 8 días hábiles' },
-      'Río Negro': { zona: 'Zona 4 — Patagonia', oca: 4800, correo: 4400, diasOca: '5 a 7 días hábiles', diasCorreo: '6 a 8 días hábiles' },
-      'Chubut': { zona: 'Zona 4 — Patagonia', oca: 5200, correo: 4800, diasOca: '5 a 8 días hábiles', diasCorreo: '6 a 9 días hábiles' },
-      'Santa Cruz': { zona: 'Zona 4 — Patagonia', oca: 5800, correo: 5400, diasOca: '6 a 9 días hábiles', diasCorreo: '7 a 10 días hábiles' },
-      'Tierra del Fuego': { zona: 'Zona 4 — Patagonia', oca: 6500, correo: 6000, diasOca: '7 a 10 días hábiles', diasCorreo: '8 a 12 días hábiles' },
+      'Formosa': {
+        zona: 'Zona 1 — Local',
+        oca: 1800,
+        correo: 1500,
+        diasOca: '1 a 2 días hábiles',
+        diasCorreo: '1 a 3 días hábiles'
+      },
+      'Chaco': {
+        zona: 'Zona 1 — Cercana',
+        oca: 2200,
+        correo: 1900,
+        diasOca: '1 a 3 días hábiles',
+        diasCorreo: '2 a 4 días hábiles'
+      },
+      'Misiones': {
+        zona: 'Zona 1 — Cercana',
+        oca: 2400,
+        correo: 2000,
+        diasOca: '2 a 3 días hábiles',
+        diasCorreo: '2 a 4 días hábiles'
+      },
+      'Salta': {
+        zona: 'Zona 1 — Cercana',
+        oca: 2400,
+        correo: 2000,
+        diasOca: '2 a 3 días hábiles',
+        diasCorreo: '2 a 4 días hábiles'
+      },
+      'Jujuy': {
+        zona: 'Zona 1 — Cercana',
+        oca: 2400,
+        correo: 2000,
+        diasOca: '2 a 3 días hábiles',
+        diasCorreo: '2 a 4 días hábiles'
+      },
+      'Santiago del Estero': {
+        zona: 'Zona 2 — Interior',
+        oca: 2800,
+        correo: 2400,
+        diasOca: '2 a 4 días hábiles',
+        diasCorreo: '3 a 5 días hábiles'
+      },
+      'Tucumán': {
+        zona: 'Zona 2 — Interior',
+        oca: 2800,
+        correo: 2400,
+        diasOca: '2 a 4 días hábiles',
+        diasCorreo: '3 a 5 días hábiles'
+      },
+      'Catamarca': {
+        zona: 'Zona 2 — Interior',
+        oca: 3000,
+        correo: 2600,
+        diasOca: '3 a 5 días hábiles',
+        diasCorreo: '3 a 6 días hábiles'
+      },
+      'Corrientes': {
+        zona: 'Zona 2 — Interior',
+        oca: 2800,
+        correo: 2400,
+        diasOca: '2 a 4 días hábiles',
+        diasCorreo: '3 a 5 días hábiles'
+      },
+      'Entre Ríos': {
+        zona: 'Zona 2 — Interior',
+        oca: 3000,
+        correo: 2600,
+        diasOca: '3 a 5 días hábiles',
+        diasCorreo: '3 a 6 días hábiles'
+      },
+      'Córdoba': {
+        zona: 'Zona 2 — Interior',
+        oca: 3200,
+        correo: 2800,
+        diasOca: '3 a 5 días hábiles',
+        diasCorreo: '4 a 6 días hábiles'
+      },
+      'Santa Fe': {
+        zona: 'Zona 2 — Interior',
+        oca: 3200,
+        correo: 2800,
+        diasOca: '3 a 5 días hábiles',
+        diasCorreo: '4 a 6 días hábiles'
+      },
+      'La Rioja': {
+        zona: 'Zona 2 — Interior',
+        oca: 3200,
+        correo: 2800,
+        diasOca: '3 a 5 días hábiles',
+        diasCorreo: '4 a 6 días hábiles'
+      },
+      'San Juan': {
+        zona: 'Zona 3 — Oeste',
+        oca: 3600,
+        correo: 3200,
+        diasOca: '4 a 6 días hábiles',
+        diasCorreo: '5 a 7 días hábiles'
+      },
+      'Mendoza': {
+        zona: 'Zona 3 — Oeste',
+        oca: 3600,
+        correo: 3200,
+        diasOca: '4 a 6 días hábiles',
+        diasCorreo: '5 a 7 días hábiles'
+      },
+      'San Luis': {
+        zona: 'Zona 3 — Oeste',
+        oca: 3600,
+        correo: 3200,
+        diasOca: '4 a 6 días hábiles',
+        diasCorreo: '5 a 7 días hábiles'
+      },
+      'Buenos Aires': {
+        zona: 'Zona 3 — Centro',
+        oca: 3800,
+        correo: 3400,
+        diasOca: '3 a 5 días hábiles',
+        diasCorreo: '4 a 7 días hábiles'
+      },
+      'Ciudad de Buenos Aires': {
+        zona: 'Zona 3 — CABA',
+        oca: 3800,
+        correo: 3400,
+        diasOca: '3 a 5 días hábiles',
+        diasCorreo: '4 a 7 días hábiles'
+      },
+      'La Pampa': {
+        zona: 'Zona 3 — Centro',
+        oca: 4000,
+        correo: 3600,
+        diasOca: '4 a 6 días hábiles',
+        diasCorreo: '5 a 7 días hábiles'
+      },
+      'Neuquén': {
+        zona: 'Zona 4 — Patagonia',
+        oca: 4800,
+        correo: 4400,
+        diasOca: '5 a 7 días hábiles',
+        diasCorreo: '6 a 8 días hábiles'
+      },
+      'Río Negro': {
+        zona: 'Zona 4 — Patagonia',
+        oca: 4800,
+        correo: 4400,
+        diasOca: '5 a 7 días hábiles',
+        diasCorreo: '6 a 8 días hábiles'
+      },
+      'Chubut': {
+        zona: 'Zona 4 — Patagonia',
+        oca: 5200,
+        correo: 4800,
+        diasOca: '5 a 8 días hábiles',
+        diasCorreo: '6 a 9 días hábiles'
+      },
+      'Santa Cruz': {
+        zona: 'Zona 4 — Patagonia',
+        oca: 5800,
+        correo: 5400,
+        diasOca: '6 a 9 días hábiles',
+        diasCorreo: '7 a 10 días hábiles'
+      },
+      'Tierra del Fuego': {
+        zona: 'Zona 4 — Patagonia',
+        oca: 6500,
+        correo: 6000,
+        diasOca: '7 a 10 días hábiles',
+        diasCorreo: '8 a 12 días hábiles'
+      },
     };
 
     // ─── Tabs ───
@@ -453,7 +597,7 @@
 
     // ─── Buscar por CP ───
     let debounceTimer = null;
-    document.getElementById('input-cp').addEventListener('input', function () {
+    document.getElementById('input-cp').addEventListener('input', function() {
       const cp = this.value.trim();
       document.getElementById('cp-provincia').value = '';
       document.getElementById('cp-localidad').value = '';
@@ -543,9 +687,9 @@
 
     // ─── Mostrar resultado ───
     function mostrarResultado(modo) {
-      const provincia = modo === 'cp'
-        ? document.getElementById('cp-provincia').value
-        : document.getElementById('select-provincia').value;
+      const provincia = modo === 'cp' ?
+        document.getElementById('cp-provincia').value :
+        document.getElementById('select-provincia').value;
 
       const provNorm = provincia.trim().replace(/\b\w/g, l => l.toUpperCase());
       let zonaData = null;
@@ -556,7 +700,13 @@
         }
       }
       if (!zonaData) {
-        zonaData = { zona: 'Zona 3 — Interior', oca: 3800, correo: 3400, diasOca: '3 a 6 días hábiles', diasCorreo: '4 a 7 días hábiles' };
+        zonaData = {
+          zona: 'Zona 3 — Interior',
+          oca: 3800,
+          correo: 3400,
+          diasOca: '3 a 6 días hábiles',
+          diasCorreo: '4 a 7 días hábiles'
+        };
       }
 
       document.getElementById('resultado-zona').textContent = zonaData.zona;
@@ -565,7 +715,10 @@
       document.getElementById('dias-oca').textContent = zonaData.diasOca;
       document.getElementById('dias-correo').textContent = zonaData.diasCorreo;
       document.getElementById('resultado').classList.add('visible');
-      document.getElementById('resultado').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.getElementById('resultado').scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
     }
   </script>
 </body>

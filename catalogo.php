@@ -15,6 +15,8 @@ while ($fila = $resultado->fetch_assoc()) {
 // Categoría seleccionada desde GET (para el título)
 $categoria_seleccionada = isset($_GET['cat']) ? $_GET['cat'] : '';
 ?>
+<?php include __DIR__ . '/includes/carrito-panel.php'; ?>
+<script src="assets/js/catalogo.js"></script>
 <!DOCTYPE html>
 <html lang="es">
 

@@ -39,6 +39,8 @@ $stmt2->bind_param("si", $producto['subcategoria'], $id);
 $stmt2->execute();
 $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
+<?php include __DIR__ . '/includes/carrito-panel.php'; ?>
+<script src="assets/js/catalogo.js"></script>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -457,29 +459,9 @@ $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
     <?php endif; ?>
 
-    <script>
-        function agregarAlCarrito(id) {
-            fetch('carrito-api.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        accion: 'agregar',
-                        producto_id: id,
-                        cantidad: 1
-                    })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok) {
-                        alert('✅ Producto agregado al carrito');
-                    } else {
-                        alert('❌ ' + (data.error || 'Error al agregar'));
-                    }
-                });
-        }
-    </script>
+    <script src="assets/js/catalogo.js"></script>
+
+
 
 </body>
 

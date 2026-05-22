@@ -6,107 +6,127 @@ const WA_NUMBER = '5493704097831';
 let carrito = [];
 
 // ─── Agregar producto al carrito ───
-function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
-  const existente = carrito.find(i => i.nombre === nombre);
-  if (existente) {
-    existente.cantidad++;
-  } else {
-    carrito.push({ nombre, imagen, subcategoria, cantidad: 1, precio });
-  }
-  btn.textContent = '✓ Agregado';
-  btn.classList.add('agregado');
-  setTimeout(() => {
-    btn.textContent = '+ Agregar';
-    btn.classList.remove('agregado');
-  }, 1500);
-  actualizarCarrito();
-  abrirCarrito();
+const WA_NUMBER = '5493704097831';
+
+// ─── Agregar al carrito via API ───
+function agregarAlCarrito(productoId) {
+  fetch('/marlene-store/carrito-api.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'agregar', producto_id: productoId, cantidad: 1 })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        actualizarBadge(data.total);
+        cargarCarrito();
+        abrirCarrito();
+      } else {
+        alert('❌ ' + (data.error || 'Error al agregar'));
+      }
+    });
 }
 
-// ─── Actualizar UI del carrito ───
-function actualizarCarrito() {
-  const total = carrito.reduce((acc, i) => acc + i.cantidad, 0);
+// ─── Cargar carrito desde sesión ───
+function cargarCarrito() {
+  fetch('/marlene-store/carrito-api.php?accion=obtener')
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        actualizarBadge(data.cantidad);
+        renderCarrito(data.items, data.total);
+      }
+    });
+}
 
-  // Actualizar badge
-  const badge = document.getElementById('carrito-badge');
-  badge.textContent = total;
-  badge.classList.toggle('visible', total > 0);
-
-  // Actualizar totales
-  document.getElementById('carrito-total').textContent = total;
-  const totalPesos = carrito.reduce((acc, i) => acc + ((i.precio || 0) * i.cantidad), 0);
-  document.getElementById('carrito-subtotal').textContent = '$' + totalPesos.toLocaleString('es-AR');
-
-  const footer = document.getElementById('carrito-footer');
+// ─── Renderizar items del carrito ───
+function renderCarrito(items, total) {
   const itemsContainer = document.getElementById('carrito-items');
+  const footer = document.getElementById('carrito-footer');
+  const badgeTotal = document.getElementById('carrito-total');
+  const subtotal = document.getElementById('carrito-subtotal');
+
+  if (!itemsContainer) return;
+
+  const cantidad = items.reduce((a, i) => a + i.cantidad, 0);
+  if (badgeTotal) badgeTotal.textContent = cantidad;
+  if (subtotal) subtotal.textContent = '$' + total.toLocaleString('es-AR');
 
   itemsContainer.innerHTML = '';
 
-  if (carrito.length === 0) {
-    footer.style.display = 'none';
+  if (items.length === 0) {
+    if (footer) footer.style.display = 'none';
     itemsContainer.innerHTML = `
-      <div class="carrito-vacio">
-        <p>🛒</p>
-        <p>Tu carrito está vacío</p>
-      </div>`;
+            <div class="carrito-vacio">
+                <p>🛒</p>
+                <p>Tu carrito está vacío</p>
+            </div>`;
     return;
   }
 
-  footer.style.display = 'block';
+  if (footer) footer.style.display = 'block';
 
-  carrito.forEach((item, index) => {
+  items.forEach(item => {
     const div = document.createElement('div');
     div.className = 'carrito-item';
     div.innerHTML = `
-      <img src="${item.imagen}" alt="${item.nombre}" style="width:50px;height:50px;object-fit:contain;border-radius:4px;flex-shrink:0;">
-      <div class="carrito-item-info">
-        <strong>${item.nombre}</strong>
-        <span>${item.subcategoria}</span>
-      </div>
-      <div class="carrito-item-qty">
-        <button class="qty-btn" onclick="cambiarCantidad(${index}, -1)">−</button>
-        <span class="qty-num">${item.cantidad}</span>
-        <button class="qty-btn" onclick="cambiarCantidad(${index}, 1)">+</button>
-      </div>
-      <button class="carrito-eliminar" onclick="eliminarItem(${index})">🗑</button>
-    `;
+            <img src="${item.imagen}" alt="${item.nombre}" style="width:50px;height:50px;object-fit:contain;border-radius:4px;flex-shrink:0;">
+            <div class="carrito-item-info">
+                <strong>${item.nombre}</strong>
+                <span>$${(item.precio).toLocaleString('es-AR')}</span>
+            </div>
+            <div class="carrito-item-qty">
+                <button class="qty-btn" onclick="cambiarCantidad(${item.id}, ${item.cantidad - 1})">−</button>
+                <span class="qty-num">${item.cantidad}</span>
+                <button class="qty-btn" onclick="cambiarCantidad(${item.id}, ${item.cantidad + 1})">+</button>
+            </div>
+            <button class="carrito-eliminar" onclick="quitarItem(${item.id})">🗑</button>
+        `;
     itemsContainer.appendChild(div);
   });
 }
 
-// ─── Cambiar cantidad ───
-function cambiarCantidad(index, delta) {
-  carrito[index].cantidad += delta;
-  if (carrito[index].cantidad <= 0) carrito.splice(index, 1);
-  actualizarCarrito();
+// ─── Actualizar badge del nav ───
+function actualizarBadge(total) {
+  const badge = document.getElementById('carrito-badge');
+  if (badge) {
+    badge.textContent = total;
+    badge.classList.toggle('visible', total > 0);
+  }
 }
 
-// ─── Eliminar item ───
-function eliminarItem(index) {
-  carrito.splice(index, 1);
-  actualizarCarrito();
+// ─── Cambiar cantidad ───
+function cambiarCantidad(id, cantidad) {
+  fetch('/marlene-store/carrito-api.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'actualizar', producto_id: id, cantidad: cantidad })
+  })
+    .then(r => r.json())
+    .then(() => cargarCarrito());
+}
+
+// ─── Quitar item ───
+function quitarItem(id) {
+  fetch('/marlene-store/carrito-api.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'quitar', producto_id: id })
+  })
+    .then(r => r.json())
+    .then(() => cargarCarrito());
 }
 
 // ─── Vaciar carrito ───
 function vaciarCarrito() {
-  carrito = [];
-  actualizarCarrito();
+  fetch('/marlene-store/carrito-api.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'vaciar' })
+  })
+    .then(r => r.json())
+    .then(() => cargarCarrito());
 }
-
-// ─── Abrir panel ───
-function abrirCarrito() {
-  document.getElementById('carrito-panel').classList.add('abierto');
-  document.getElementById('carrito-overlay').classList.add('abierto');
-  document.querySelector('.wa-btn').style.display = 'none';
-}
-
-// ─── Cerrar panel ───
-function cerrarCarrito() {
-  document.getElementById('carrito-panel').classList.remove('abierto');
-  document.getElementById('carrito-overlay').classList.remove('abierto');
-  document.querySelector('.wa-btn').style.display = 'flex';
-}
-
 // ─── Enviar pedido por WhatsApp ───
 async function enviarPorWhatsapp() {
   if (carrito.length === 0) return;

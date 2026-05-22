@@ -21,6 +21,8 @@ if (isset($_GET['cat'])) {
 $stmt->execute();
 $resultado = $stmt->get_result();
 ?>
+<?php include __DIR__ . '/includes/carrito-panel.php'; ?>
+<script src="assets/js/catalogo.js"></script>
 <!DOCTYPE html>
 <html lang="es">
 
