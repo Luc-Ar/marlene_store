@@ -5,181 +5,115 @@
 const WA_NUMBER = '5493704097831';
 let carrito = [];
 
-// ─── Agregar producto al carrito ───
-const WA_NUMBER = '5493704097831';
-
-// ─── Agregar al carrito via API ───
-function agregarAlCarrito(productoId) {
-  fetch('/marlene-store/carrito-api.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accion: 'agregar', producto_id: productoId, cantidad: 1 })
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        actualizarBadge(data.total);
-        cargarCarrito();
-        abrirCarrito();
-      } else {
-        alert('❌ ' + (data.error || 'Error al agregar'));
-      }
-    });
+function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
+  const existente = carrito.find(i => i.nombre === nombre);
+  if (existente) {
+    existente.cantidad++;
+  } else {
+    carrito.push({ nombre, imagen, subcategoria, cantidad: 1, precio });
+  }
+  btn.textContent = '✓ Agregado';
+  btn.classList.add('agregado');
+  setTimeout(() => {
+    btn.textContent = '+ Agregar';
+    btn.classList.remove('agregado');
+  }, 1500);
+  actualizarCarrito();
+  abrirCarrito();
 }
 
-// ─── Cargar carrito desde sesión ───
-function cargarCarrito() {
-  fetch('/marlene-store/carrito-api.php?accion=obtener')
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        actualizarBadge(data.cantidad);
-        renderCarrito(data.items, data.total);
-      }
-    });
-}
-
-// ─── Renderizar items del carrito ───
-function renderCarrito(items, total) {
-  const itemsContainer = document.getElementById('carrito-items');
+function actualizarCarrito() {
+  const total = carrito.reduce((acc, i) => acc + i.cantidad, 0);
+  const badge = document.getElementById('carrito-badge');
+  badge.textContent = total;
+  badge.classList.toggle('visible', total > 0);
+  document.getElementById('carrito-total').textContent = total;
+  const totalPesos = carrito.reduce((acc, i) => acc + ((i.precio || 0) * i.cantidad), 0);
+  document.getElementById('carrito-subtotal').textContent = '$' + totalPesos.toLocaleString('es-AR');
   const footer = document.getElementById('carrito-footer');
-  const badgeTotal = document.getElementById('carrito-total');
-  const subtotal = document.getElementById('carrito-subtotal');
-
-  if (!itemsContainer) return;
-
-  const cantidad = items.reduce((a, i) => a + i.cantidad, 0);
-  if (badgeTotal) badgeTotal.textContent = cantidad;
-  if (subtotal) subtotal.textContent = '$' + total.toLocaleString('es-AR');
-
+  const itemsContainer = document.getElementById('carrito-items');
   itemsContainer.innerHTML = '';
-
-  if (items.length === 0) {
-    if (footer) footer.style.display = 'none';
+  if (carrito.length === 0) {
+    footer.style.display = 'none';
     itemsContainer.innerHTML = `
-            <div class="carrito-vacio">
-                <p>🛒</p>
-                <p>Tu carrito está vacío</p>
-            </div>`;
+      <div class="carrito-vacio">
+        <p>🛒</p>
+        <p>Tu carrito está vacío</p>
+      </div>`;
     return;
   }
-
-  if (footer) footer.style.display = 'block';
-
-  items.forEach(item => {
+  footer.style.display = 'block';
+  carrito.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'carrito-item';
     div.innerHTML = `
-            <img src="${item.imagen}" alt="${item.nombre}" style="width:50px;height:50px;object-fit:contain;border-radius:4px;flex-shrink:0;">
-            <div class="carrito-item-info">
-                <strong>${item.nombre}</strong>
-                <span>$${(item.precio).toLocaleString('es-AR')}</span>
-            </div>
-            <div class="carrito-item-qty">
-                <button class="qty-btn" onclick="cambiarCantidad(${item.id}, ${item.cantidad - 1})">−</button>
-                <span class="qty-num">${item.cantidad}</span>
-                <button class="qty-btn" onclick="cambiarCantidad(${item.id}, ${item.cantidad + 1})">+</button>
-            </div>
-            <button class="carrito-eliminar" onclick="quitarItem(${item.id})">🗑</button>
-        `;
+      <img src="${item.imagen}" alt="${item.nombre}" style="width:50px;height:50px;object-fit:contain;border-radius:4px;flex-shrink:0;">
+      <div class="carrito-item-info">
+        <strong>${item.nombre}</strong>
+        <span>${item.subcategoria}</span>
+      </div>
+      <div class="carrito-item-qty">
+        <button class="qty-btn" onclick="cambiarCantidad(${index}, -1)">−</button>
+        <span class="qty-num">${item.cantidad}</span>
+        <button class="qty-btn" onclick="cambiarCantidad(${index}, 1)">+</button>
+      </div>
+      <button class="carrito-eliminar" onclick="eliminarItem(${index})">🗑</button>
+    `;
     itemsContainer.appendChild(div);
   });
 }
 
-// ─── Actualizar badge del nav ───
-function actualizarBadge(total) {
-  const badge = document.getElementById('carrito-badge');
-  if (badge) {
-    badge.textContent = total;
-    badge.classList.toggle('visible', total > 0);
-  }
+function cambiarCantidad(index, delta) {
+  carrito[index].cantidad += delta;
+  if (carrito[index].cantidad <= 0) carrito.splice(index, 1);
+  actualizarCarrito();
 }
 
-// ─── Cambiar cantidad ───
-function cambiarCantidad(id, cantidad) {
-  fetch('/marlene-store/carrito-api.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accion: 'actualizar', producto_id: id, cantidad: cantidad })
-  })
-    .then(r => r.json())
-    .then(() => cargarCarrito());
+function eliminarItem(index) {
+  carrito.splice(index, 1);
+  actualizarCarrito();
 }
 
-// ─── Quitar item ───
-function quitarItem(id) {
-  fetch('/marlene-store/carrito-api.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accion: 'quitar', producto_id: id })
-  })
-    .then(r => r.json())
-    .then(() => cargarCarrito());
-}
-
-// ─── Vaciar carrito ───
 function vaciarCarrito() {
-  fetch('/marlene-store/carrito-api.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accion: 'vaciar' })
-  })
-    .then(r => r.json())
-    .then(() => cargarCarrito());
+  carrito = [];
+  actualizarCarrito();
 }
-// ─── Enviar pedido por WhatsApp ───
-async function enviarPorWhatsapp() {
-  if (carrito.length === 0) return;
 
-  // Armar mensaje WhatsApp
+function abrirCarrito() {
+  document.getElementById('carrito-panel').classList.add('abierto');
+  document.getElementById('carrito-overlay').classList.add('abierto');
+  const waBtn = document.querySelector('.wa-btn');
+  if (waBtn) waBtn.style.display = 'none';
+}
+
+function cerrarCarrito() {
+  document.getElementById('carrito-panel').classList.remove('abierto');
+  document.getElementById('carrito-overlay').classList.remove('abierto');
+  const waBtn = document.querySelector('.wa-btn');
+  if (waBtn) waBtn.style.display = 'flex';
+}
+
+function enviarPorWhatsapp() {
+  if (carrito.length === 0) return;
   let mensaje = '¡Hola Marlene! 👋 Me gustaría consultar por los siguientes productos:\n\n';
   carrito.forEach(item => {
-    mensaje += `🎒 *${item.nombre}* — Cantidad: ${item.cantidad}\n`;
+    mensaje += `🎒 *${item.nombre}* (${item.subcategoria}) — Cantidad: ${item.cantidad}\n`;
   });
   const totalPesos = carrito.reduce((acc, i) => acc + ((i.precio || 0) * i.cantidad), 0);
   mensaje += `\n*Total: $${totalPesos.toLocaleString('es-AR')}*`;
-  mensaje += '\n\n¿Me podés confirmar disponibilidad? 🌸';
-
-  // Guardar pedido en la BD
-  try {
-    const pedidoData = {
-      nombre: 'Cliente WhatsApp',
-      telefono: 'WhatsApp',
-      productos: carrito.map(i => ({
-        nombre: i.nombre,
-        precio: i.precio || 0,
-        cantidad: i.cantidad,
-        id: 0
-      })),
-      total: totalPesos,
-      metodo_pago: 'whatsapp'
-    };
-    await fetch('/marlene-store/api/guardar-pedido.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pedidoData)
-    });
-  } catch (e) {
-    console.log('Error al guardar pedido:', e);
-  }
-
-  // Abrir WhatsApp
+  mensaje += '\n\n¿Me podés confirmar disponibilidad? ¡Gracias! 🌸';
   const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensaje)}`;
   window.open(url, '_blank');
 }
 
-// ─── Filtros por subcategoría ───
-
+// ─── Filtros dinámicos desde BD ───
 document.addEventListener('DOMContentLoaded', () => {
-
-  // ─── Filtros (botones generados por PHP desde BD) ───
   const secciones = document.querySelectorAll('.catalogo-section');
 
   document.querySelectorAll('.filtro-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
       btn.classList.add('activo');
-
       const seccion = btn.dataset.seccion;
       secciones.forEach(s => {
         s.classList.toggle('oculto', seccion !== 'todos' && s.id !== seccion);
@@ -187,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ─── Animación de entrada ───
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -203,5 +136,4 @@ document.addEventListener('DOMContentLoaded', () => {
     card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
     observer.observe(card);
   });
-
 });

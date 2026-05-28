@@ -12,8 +12,7 @@ while ($fila = $resultado->fetch_assoc()) {
   $productos[] = $fila;
 }
 
-// Categoría seleccionada desde GET (para el título)
-$categoria_seleccionada = isset($_GET['cat']) ? $_GET['cat'] : '';
+
 ?>
 <?php include __DIR__ . '/includes/carrito-panel.php'; ?>
 <script src="assets/js/catalogo.js"></script>
@@ -21,12 +20,37 @@ $categoria_seleccionada = isset($_GET['cat']) ? $_GET['cat'] : '';
 <html lang="es">
 
 <head>
+  <style>
+    body {
+      visibility: hidden;
+    }
+  </style>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo — Marlene STORE</title>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    .carrito-panel {
+      right: -420px !important;
+    }
+
+    .carrito-overlay {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  </style>
   <link rel="stylesheet" href="assets/css/styles.css">
   <link rel="stylesheet" href="assets/css/catalogo.css">
+  <style>
+    .carrito-panel {
+      right: -420px !important;
+    }
+
+    .carrito-overlay {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  </style>
 </head>
 
 <body>
@@ -87,6 +111,10 @@ $categoria_seleccionada = isset($_GET['cat']) ? $_GET['cat'] : '';
               <div class="cat-prod-foot">
                 <span class="cat-prod-precio">$<?= number_format($p['precio'], 0, ',', '.') ?></span>
                 <a href="producto.php?id=<?= $p['id'] ?>" class="cat-prod-btn-agregar">Ver producto</a>
+                <div><button class="cat-prod-btn-agregar"
+                    onclick="agregarAlCarrito(this, '<?= addslashes($p['nombre']) ?>', '<?= $p['imagen_principal'] ?>', '<?= addslashes($cat['nombre']) ?>', <?= $p['precio'] ?>)">
+                    + Agregar
+                  </button></div>
               </div>
             </div>
           </div>
@@ -98,6 +126,11 @@ $categoria_seleccionada = isset($_GET['cat']) ? $_GET['cat'] : '';
     </section>
   <?php endwhile; ?>
 
+  <script src="assets/js/catalogo.js"></script>
+  <script>
+    document.body.style.visibility = 'visible';
+  </script>
+  <?php include __DIR__ . '/includes/carrito-panel.php'; ?>
   <script src="assets/js/catalogo.js"></script>
 </body>
 

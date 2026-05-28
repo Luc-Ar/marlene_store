@@ -27,6 +27,11 @@ $resultado = $stmt->get_result();
 <html lang="es">
 
 <head>
+  <style>
+    body {
+      visibility: hidden;
+    }
+  </style>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Marlene STORE</title>
@@ -38,6 +43,34 @@ $resultado = $stmt->get_result();
 </head>
 
 <body>
+  <!-- ─── CARRITO FLOTANTE ─── -->
+  <button class="carrito-btn-flotante" onclick="abrirCarrito()">
+    🛒 Carrito
+    <span class="carrito-badge" id="carrito-badge">0</span>
+  </button>
+
+  <!-- ─── OVERLAY + PANEL DEL CARRITO ─── -->
+  <div class="carrito-overlay" id="carrito-overlay" onclick="cerrarCarrito()"></div>
+  <div class="carrito-panel" id="carrito-panel">
+    <div class="carrito-panel-header">
+      <h2>Mi pedido</h2>
+      <button class="carrito-cerrar" onclick="cerrarCarrito()">✕</button>
+    </div>
+    <div class="carrito-items" id="carrito-items">
+      <div class="carrito-vacio">
+        <p>🛒</p>
+        <p>Tu carrito está vacío</p>
+      </div>
+    </div>
+    <div class="carrito-panel-footer" id="carrito-footer" style="display:none;">
+      <p class="carrito-resumen">Total de productos: <span id="carrito-total">0</span></p>
+      <p class="carrito-resumen">Total: <span id="carrito-subtotal">$0</span></p>
+      <button class="carrito-wa-btn" onclick="enviarPorWhatsapp()">
+        💬 Enviar pedido por WhatsApp
+      </button>
+      <button class="btn-vaciar" onclick="vaciarCarrito()">Vaciar carrito</button>
+    </div>
+  </div>
 
   <nav>
     <a href="index.php" class="logo-wrap">
@@ -453,6 +486,9 @@ $resultado = $stmt->get_result();
 
 
   <script src="assets/js/script.js"></script>
+  <script>
+    document.body.style.visibility = 'visible';
+  </script>
 </body>
 
 </html>

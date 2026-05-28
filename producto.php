@@ -45,6 +45,11 @@ $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
 <html lang="es">
 
 <head>
+    <style>
+        body {
+            visibility: hidden;
+        }
+    </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($producto['nombre']) ?> — Marlene STORE</title>
@@ -460,7 +465,9 @@ $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
     <?php endif; ?>
 
     <script src="assets/js/catalogo.js"></script>
-
+    <script>
+        document.body.style.visibility = 'visible';
+    </script>
 
 
 </body>
