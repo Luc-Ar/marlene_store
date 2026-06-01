@@ -14,8 +14,6 @@ while ($fila = $resultado->fetch_assoc()) {
 
 
 ?>
-<?php include __DIR__ . '/includes/carrito-panel.php'; ?>
-<script src="assets/js/catalogo.js"></script>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -29,28 +27,8 @@ while ($fila = $resultado->fetch_assoc()) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo — Marlene STORE</title>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-  <style>
-    .carrito-panel {
-      right: -420px !important;
-    }
-
-    .carrito-overlay {
-      opacity: 0 !important;
-      pointer-events: none !important;
-    }
-  </style>
   <link rel="stylesheet" href="assets/css/styles.css">
   <link rel="stylesheet" href="assets/css/catalogo.css">
-  <style>
-    .carrito-panel {
-      right: -420px !important;
-    }
-
-    .carrito-overlay {
-      opacity: 0 !important;
-      pointer-events: none !important;
-    }
-  </style>
 </head>
 
 <body>
@@ -126,7 +104,6 @@ while ($fila = $resultado->fetch_assoc()) {
     </section>
   <?php endwhile; ?>
 
-  <script src="assets/js/catalogo.js"></script>
   <script>
     document.body.style.visibility = 'visible';
   </script>

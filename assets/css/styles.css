@@ -1197,24 +1197,6 @@ footer {
 #carrito-overlay.abierto {
   display: block;
 }
-
-#carrito-panel {
-  position: fixed;
-  top: 0;
-  right: -420px;
-  width: 420px;
-  max-width: 100vw;
-  height: 100vh;
-  background: var(--blanco);
-  z-index: 301;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -8px 0 40px rgba(58, 37, 38, 0.15);
-  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#carrito-panel.abierto {
-  right: 0;
 }
 
 .carrito-header {

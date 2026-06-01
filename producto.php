@@ -39,8 +39,6 @@ $stmt2->bind_param("si", $producto['subcategoria'], $id);
 $stmt2->execute();
 $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
-<?php include __DIR__ . '/includes/carrito-panel.php'; ?>
-<script src="assets/js/catalogo.js"></script>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -55,6 +53,7 @@ $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
     <title><?= htmlspecialchars($producto['nombre']) ?> — Marlene STORE</title>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/catalogo.css">
     <style>
         .prod-detalle {
             max-width: 1100px;
@@ -418,7 +417,7 @@ $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
             <!-- Acciones -->
             <div class="prod-acciones">
                 <?php if ($stock > 0): ?>
-                    <button class="btn-carrito" onclick="agregarAlCarrito(<?= $producto['id'] ?>)">
+                    <button class="btn-carrito" onclick="agregarAlCarrito(this, '<?= addslashes($producto['nombre']) ?>', '<?= $producto['imagen_principal'] ?>', '<?= addslashes($producto['subcategoria'] ?? '') ?>', <?= $producto['precio'] ?>)">
                         🛒 Agregar al carrito
                     </button>
                 <?php else: ?>
@@ -464,10 +463,12 @@ $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
     <?php endif; ?>
 
+    <?php include __DIR__ . '/includes/carrito-panel.php'; ?>
     <script src="assets/js/catalogo.js"></script>
     <script>
         document.body.style.visibility = 'visible';
     </script>
+</body>
 
 
 </body>

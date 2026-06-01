@@ -3,9 +3,10 @@
    ========================================= */
 
 const WA_NUMBER = '5493704097831';
-let carrito = [];
+let carrito = JSON.parse(localStorage.getItem('marlene_carrito') || '[]');
 
 function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
+  localStorage.setItem('marlene_carrito', JSON.stringify(carrito));
   const existente = carrito.find(i => i.nombre === nombre);
   if (existente) {
     existente.cantidad++;
@@ -18,10 +19,10 @@ function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
     btn.textContent = '+ Agregar';
     btn.classList.remove('agregado');
   }, 1500);
-  actualizarCarrito();
+
   abrirCarrito();
 }
-
+actualizarCarrito();
 function actualizarCarrito() {
   const total = carrito.reduce((acc, i) => acc + i.cantidad, 0);
   const badge = document.getElementById('carrito-badge');
@@ -136,4 +137,5 @@ document.addEventListener('DOMContentLoaded', () => {
     card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
     observer.observe(card);
   });
+  actualizarCarrito();
 });

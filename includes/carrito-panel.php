@@ -1,8 +1,8 @@
 <!-- OVERLAY -->
-<div class="carrito-overlay" id="carrito-overlay" onclick="cerrarCarrito()" style="opacity:0; pointer-events:none;"></div>
+<div class="carrito-overlay" id="carrito-overlay" onclick="cerrarCarrito()"></div>
 
 <!-- PANEL LATERAL -->
-<div class="carrito-panel" id="carrito-panel" style="right:-420px;">
+<div class="carrito-panel" id="carrito-panel">
     <div class="carrito-panel-header">
         <h2>Mi pedido</h2>
         <button class="carrito-cerrar" onclick="cerrarCarrito()">✕</button>
