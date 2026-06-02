@@ -32,7 +32,7 @@ while ($fila = $resultado->fetch_assoc()) {
 </head>
 
 <body>
-
+  <?php include __DIR__ . '/includes/nav.php'; ?>
   <div class="cat-header">
     <div class="cat-header-inner">
       <p class="cat-breadcrumb">

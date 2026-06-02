@@ -1448,3 +1448,66 @@ footer {
 .carrito-badge.visible {
   display: flex;
 }
+
+/* ─── NAV CUENTA ─── */
+.nav-cuenta-wrap {
+  position: relative;
+}
+
+.nav-cuenta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--marron);
+  color: var(--crema) !important;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.nav-cuenta:hover {
+  background: var(--dorado) !important;
+}
+
+.nav-cuenta-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border: 1px solid rgba(200, 152, 154, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(92, 61, 62, 0.1);
+  min-width: 160px;
+  z-index: 200;
+  overflow: hidden;
+}
+
+.nav-cuenta-wrap:hover .nav-cuenta-dropdown {
+  display: block;
+}
+
+.nav-cuenta-dropdown a {
+  display: block;
+  padding: 12px 16px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--marron);
+  text-decoration: none;
+  transition: background 0.2s;
+  letter-spacing: 1px;
+}
+
+.nav-cuenta-dropdown a:hover {
+  background: var(--crema2);
+}
+
+.nav-cuenta-dropdown a:last-child {
+  color: #DC2626;
+  border-top: 1px solid rgba(200, 152, 154, 0.2);
+}

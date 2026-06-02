@@ -344,19 +344,7 @@ $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
 <body>
 
     <!-- NAV igual al index.php -->
-    <nav>
-        <a href="index.php" class="logo-wrap">
-            <span class="logo-script">Marlene</span>
-            <span class="logo-store">STORE</span>
-        </a>
-        <ul class="nav-links">
-            <li><a href="index.php#categorias">Categorías</a></li>
-            <li><a href="catalogo.php">Productos</a></li>
-            <li><a href="index.php#envios">Envíos</a></li>
-            <li><a href="index.php#contacto">Contacto</a></li>
-            <li><a href="index.php#contacto" class="nav-cta">Consultar</a></li>
-        </ul>
-    </nav>
+    <?php include __DIR__ . '/includes/nav.php'; ?>
 
     <!-- Breadcrumb -->
     <div class="page-breadcrumb">

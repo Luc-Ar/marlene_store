@@ -19,9 +19,9 @@ if (isset($_GET['cat'])) {
 }
 
 $stmt->execute();
-?>
-$resultado = $stmt->get_result();
 
+$resultado = $stmt->get_result();
+?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -39,23 +39,12 @@ $resultado = $stmt->get_result();
     rel="stylesheet">
 
   <link rel="stylesheet" href="assets/css/styles.css">
+ 
 </head>
 
 <body>
+ <?php include __DIR__ . '/includes/nav.php'; ?>
 
-  <nav>
-    <a href="index.php" class="logo-wrap">
-      <span class="logo-script">Marlene</span>
-      <span class="logo-store">STORE</span>
-    </a>
-    <ul class="nav-links">
-      <li><a href="#categorias">Categorías</a></li>
-      <li><a href="catalogo.php">Productos</a></li>
-      <li><a href="#envios">Envíos</a></li>
-      <li><a href="#contacto">Contacto</a></li>
-      <li><a href="#contacto" class="nav-cta">Consultar</a></li>
-    </ul>
-  </nav>
 
   <!-- ─── HERO ─── -->
   <section class="hero">

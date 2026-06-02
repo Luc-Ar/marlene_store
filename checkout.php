@@ -379,7 +379,7 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
 </head>
 
 <body>
-
+    <?php include __DIR__ . '/includes/nav.php'; ?>
     <nav>
         <a href="index.php" class="logo-wrap">
             <span class="logo-script">Marlene</span>
