@@ -6,21 +6,20 @@ const WA_NUMBER = '5493704097831';
 let carrito = JSON.parse(localStorage.getItem('marlene_carrito') || '[]');
 
 function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
-  localStorage.setItem('marlene_carrito', JSON.stringify(carrito));
   const existente = carrito.find(i => i.nombre === nombre);
   if (existente) {
     existente.cantidad++;
   } else {
     carrito.push({ nombre, imagen, subcategoria, cantidad: 1, precio });
   }
+  actualizarCarrito();
+  abrirCarrito();
   btn.textContent = '✓ Agregado';
   btn.classList.add('agregado');
   setTimeout(() => {
     btn.textContent = '+ Agregar';
     btn.classList.remove('agregado');
   }, 1500);
-
-  abrirCarrito();
 }
 actualizarCarrito();
 function actualizarCarrito() {
@@ -105,6 +104,18 @@ function enviarPorWhatsapp() {
   mensaje += '\n\n¿Me podés confirmar disponibilidad? ¡Gracias! 🌸';
   const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensaje)}`;
   window.open(url, '_blank');
+}
+function irAlCheckout() {
+  if (carrito.length === 0) return;
+  fetch('/marlene-store/carrito-api.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'sincronizar', items: carrito })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) window.location.href = '/marlene-store/checkout.php';
+    });
 }
 
 // ─── Filtros dinámicos desde BD ───

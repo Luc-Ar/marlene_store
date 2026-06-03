@@ -100,6 +100,33 @@ switch ($accion) {
         echo json_encode(['ok' => true]);
         break;
 
+    case 'sincronizar':
+        $conexion = Database::getConexion();
+        $items = $data['items'] ?? [];
+        $_SESSION['carrito'] = [];
+        foreach ($items as $item) {
+            $id = (int)($item['id'] ?? 0);
+            // Si no tiene ID buscar por nombre
+            if (!$id && isset($item['nombre'])) {
+                $stmt = $conexion->prepare("SELECT id, stock, precio FROM productos WHERE nombre = ? AND activo = 1 LIMIT 1");
+                $stmt->bind_param("s", $item['nombre']);
+                $stmt->execute();
+                $prod = $stmt->get_result()->fetch_assoc();
+                if ($prod) $id = $prod['id'];
+            }
+            if ($id) {
+                $_SESSION['carrito'][$id] = [
+                    'id'       => $id,
+                    'nombre'   => $item['nombre'],
+                    'precio'   => (float)$item['precio'],
+                    'imagen'   => $item['imagen'],
+                    'cantidad' => (int)$item['cantidad'],
+                    'stock'    => (int)($prod['stock'] ?? 99),
+                ];
+            }
+        }
+        echo json_encode(['ok' => true, 'items' => count($_SESSION['carrito'])]);
+        break;
     default:
         echo json_encode(['ok' => false, 'error' => 'Acción no válida']);
 }

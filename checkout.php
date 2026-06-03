@@ -11,7 +11,10 @@ if (empty($_SESSION['carrito'])) {
 $conexion = Database::getConexion();
 $error = '';
 $exito = false;
-
+// Cargar provincias siempre
+$stmt_provs = $conexion->prepare("SELECT id, nombre FROM provincias ORDER BY nombre ASC");
+$stmt_provs->execute();
+$provincias = $stmt_provs->get_result()->fetch_all(MYSQLI_ASSOC);
 // ─── PROCESAR FORMULARIO ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Datos del formulario
@@ -47,21 +50,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $id_cliente = $conexion->insert_id;
         }
+        // Cargar provincias
+        $stmt_provs = $conexion->prepare("SELECT id, nombre FROM provincias ORDER BY nombre ASC");
+        $stmt_provs->execute();
+        $provincias = $stmt_provs->get_result()->fetch_all(MYSQLI_ASSOC);
 
-        // ─── Buscar o crear localidad ───
-        $stmt = $conexion->prepare("SELECT id FROM localidades WHERE nombre = ? LIMIT 1");
-        $stmt->bind_param("s", $localidad);
-        $stmt->execute();
-        $loc = $stmt->get_result()->fetch_assoc();
+        // Buscar o crear localidad con provincia
+        $id_provincia = (int)($_POST['id_provincia'] ?? 0);
+        $localidad    = trim($_POST['localidad'] ?? '');
 
-        if ($loc) {
-            $id_localidad = $loc['id'];
-        } else {
-            $stmt = $conexion->prepare("INSERT INTO localidades (nombre) VALUES (?)");
-            $stmt->bind_param("s", $localidad);
+        if ($localidad && $id_provincia) {
+            $stmt = $conexion->prepare("SELECT id FROM localidades WHERE nombre = ? AND id_provincia = ? LIMIT 1");
+            $stmt->bind_param("si", $localidad, $id_provincia);
             $stmt->execute();
-            $id_localidad = $conexion->insert_id;
+            $loc = $stmt->get_result()->fetch_assoc();
+            if ($loc) {
+                $id_localidad = $loc['id'];
+            } else {
+                $stmt = $conexion->prepare("INSERT INTO localidades (nombre, id_provincia) VALUES (?, ?)");
+                $stmt->bind_param("si", $localidad, $id_provincia);
+                $stmt->execute();
+                $id_localidad = $conexion->insert_id;
+            }
         }
+
+
+        // // ─── Buscar o crear localidad ───
+        // // $stmt = $conexion->prepare("SELECT id FROM localidades WHERE nombre = ? LIMIT 1");
+        // // $stmt->bind_param("s", $localidad);
+        // // $stmt->execute();
+        // // $loc = $stmt->get_result()->fetch_assoc();
+
+        // if ($loc) {
+        //     $id_localidad = $loc['id'];
+        // } else {
+        //     $stmt = $conexion->prepare("INSERT INTO localidades (nombre) VALUES (?)");
+        //     $stmt->bind_param("s", $localidad);
+        //     $stmt->execute();
+        //     $id_localidad = $conexion->insert_id;
+        // }
 
         // ─── Guardar dirección ───
         $stmt = $conexion->prepare("INSERT INTO direcciones (id_cliente, calle, altura, codigo_postal, id_localidad) VALUES (?, ?, ?, ?, ?)");
@@ -85,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO pedidos (id_cliente, numero_pedido, estado, total, peso_total, metodo_pago, notas, id_direccion)
             VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param("isddss i", $id_cliente, $numero_pedido, $total, $peso_total, $metodo_pago, $notas, $id_direccion);
+        $stmt->bind_param("isddsssi", $id_cliente, $numero_pedido, $total, $peso_total, $metodo_pago, $notas, $id_direccion);
         $stmt->execute();
         $id_pedido = $conexion->insert_id;
 
@@ -120,6 +147,7 @@ $items = array_values($_SESSION['carrito']);
 $total = array_sum(array_map(fn($i) => $i['precio'] * $i['cantidad'], $items));
 $cantidad = array_sum(array_column($items, 'cantidad'));
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -437,17 +465,37 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
                             <label>Altura / Número</label>
                             <input type="number" name="altura" value="<?= htmlspecialchars($_POST['altura'] ?? '') ?>">
                         </div>
+
+                        <div class="form-group full">
+                            <label>Provincia *</label>
+                            <select name="id_provincia" id="select-provincia-checkout" required
+                                onchange="cargarLocalidadesCheckout()">
+                                <option value="">— Seleccioná tu provincia —</option>
+                                <?php foreach ($provincias as $prov): ?>
+                                    <option value="<?= $prov['id'] ?>"
+                                        data-nombre="<?= htmlspecialchars($prov['nombre']) ?>"
+                                        <?= ($_POST['id_provincia'] ?? '') == $prov['id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($prov['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group full">
+                            <label>Localidad *</label>
+                            <select name="localidad" id="select-localidad-checkout" required disabled
+                                onchange="buscarCPporLocalidad()">
+                                <option value="">— Primero elegí la provincia —</option>
+                            </select>
+                            <span id="loading-localidades" style="font-size:0.7rem;color:#C9A96E;margin-top:4px;display:none;">
+                                ⏳ Cargando localidades...
+                            </span>
+                        </div>
                         <div class="form-group">
                             <label>Código Postal *</label>
-                            <input type="text" name="codigo_postal" required id="cp-input" value="<?= htmlspecialchars($_POST['codigo_postal'] ?? '') ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>Localidad *</label>
-                            <input type="text" name="localidad" required id="localidad-input" value="<?= htmlspecialchars($_POST['localidad'] ?? '') ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>Provincia</label>
-                            <input type="text" name="provincia" id="provincia-input" value="<?= htmlspecialchars($_POST['provincia'] ?? '') ?>">
+                            <input type="text" name="codigo_postal" id="input-cp-checkout" required
+                                placeholder="Se completa automático"
+                                value="<?= htmlspecialchars($_POST['codigo_postal'] ?? '') ?>">
+                            <span id="cp-status" style="font-size:0.65rem;color:#999;margin-top:4px;display:block;"></span>
                         </div>
                         <div class="form-group full">
                             <label>Descripción adicional</label>
@@ -522,29 +570,80 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
     </div>
 
     <script>
-        // Autocompletar localidad y provincia desde código postal
-        document.getElementById('cp-input').addEventListener('blur', function() {
-            const cp = this.value.trim();
-            if (cp.length < 4) return;
-            fetch(`https://api.zippopotam.us/ar/${cp}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.places && data.places[0]) {
-                        document.getElementById('localidad-input').value = data.places[0]['place name'];
-                        document.getElementById('provincia-input').value = data.places[0]['state'];
-                    }
-                })
-                .catch(() => {});
-        });
+        async function cargarLocalidadesCheckout(id_provincia) {
+            const select = document.getElementById('select-localidad-checkout');
+            const loading = document.getElementById('loading-localidades');
+            const nombreProv = document.querySelector('#select-provincia-checkout option:checked').textContent;
 
-        // Resaltar método de pago seleccionado
-        document.querySelectorAll('.metodo-pago-opt input[type="radio"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                document.querySelectorAll('.metodo-pago-opt').forEach(opt => opt.classList.remove('seleccionado'));
-                radio.closest('.metodo-pago-opt').classList.add('seleccionado');
-            });
-        });
-        document.querySelector('.metodo-pago-opt input[checked]')?.closest('.metodo-pago-opt')?.classList.add('seleccionado');
+            select.disabled = true;
+            select.innerHTML = '<option value="">Cargando...</option>';
+            loading.style.display = 'block';
+
+            try {
+                const nombre = nombreProv === 'Ciudad de Buenos Aires' ?
+                    'Ciudad Autónoma de Buenos Aires' : nombreProv;
+                const url = `https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(nombre)}&max=500&orden=nombre&campos=nombre`;
+                const res = await fetch(url);
+                const data = await res.json();
+                loading.style.display = 'none';
+
+                if (data.localidades && data.localidades.length > 0) {
+                    const nombres = [...new Set(data.localidades.map(l => l.nombre))].sort();
+                    select.innerHTML = '<option value="">— Seleccioná tu localidad —</option>';
+                    nombres.forEach(nombre => {
+                        const opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                    select.disabled = false;
+                }
+            } catch (e) {
+                loading.style.display = 'none';
+                select.innerHTML = '<option value="">Error — escribí la localidad</option>';
+                // Fallback a input de texto
+                select.parentNode.innerHTML = `
+            <label>Localidad *</label>
+            <input type="text" name="localidad" required placeholder="Escribí tu localidad">
+        `;
+            }
+        }
+        async function buscarCPporLocalidad() {
+    const localidad  = document.getElementById('select-localidad-checkout').value;
+    const selectProv = document.getElementById('select-provincia-checkout');
+    const nombreProv = selectProv.options[selectProv.selectedIndex]?.dataset.nombre || '';
+    const inputCP    = document.getElementById('input-cp-checkout');
+    const cpStatus   = document.getElementById('cp-status');
+
+    if (!localidad || !nombreProv) return;
+
+    cpStatus.textContent = '⏳ Buscando código postal...';
+    cpStatus.style.color = '#C9A96E';
+
+    try {
+        // Buscar por localidad en zippopotam
+        const query = encodeURIComponent(localidad);
+        const res = await fetch(`https://api.zippopotam.us/ar/${query}`);
+
+        if (res.ok) {
+            const data = await res.json();
+            if (data['post code']) {
+                inputCP.value = data['post code'];
+                cpStatus.textContent = '✓ Código postal encontrado';
+                cpStatus.style.color = '#16A34A';
+                return;
+            }
+        }
+        // Si no encontró
+        cpStatus.textContent = 'No encontramos el CP — escribilo vos';
+        cpStatus.style.color = '#999';
+        inputCP.value = '';
+        inputCP.focus();
+    } catch (e) {
+        cpStatus.textContent = 'Escribí el código postal manualmente';
+        cpStatus.style.color = '#999';
+    }
+}
     </script>
 
 </body>

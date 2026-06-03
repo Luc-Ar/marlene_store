@@ -20,10 +20,12 @@
         <p class="carrito-resumen">
             TOTAL: <span id="carrito-subtotal">$0</span>
         </p>
+
         <button class="carrito-wa-btn" onclick="enviarPorWhatsapp()">
             💬 ENVIAR PEDIDO POR WHATSAPP
         </button>
         <button class="btn-vaciar" onclick="vaciarCarrito()">VACIAR CARRITO</button>
+        <button class="btn-checkout" onclick="irAlCheckout()">FINALIZAR COMPRA</button>
     </div>
 </div>
 
