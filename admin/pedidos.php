@@ -24,7 +24,31 @@ $colores = [
 
 // 2. Procesar cambio de estado (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_pedido'])) {
-  $pedidoRepo->actualizarEstado((int)$_POST['id_pedido'], $_POST['nuevo_estado']);
+  $id_pedido    = (int)$_POST['id_pedido'];
+  $nuevo_estado = trim($_POST['nuevo_estado']);
+
+  $pedidoRepo->actualizarEstado($id_pedido, $nuevo_estado);
+
+  // Enviar email al cliente
+  require_once __DIR__ . '/../includes/emails.php';
+  $stmt = $db->prepare("
+        SELECT p.*, c.nombre as cliente_nombre, c.email as cliente_email
+        FROM pedidos p
+        LEFT JOIN clientes c ON p.id_cliente = c.id
+        WHERE p.id = ? LIMIT 1
+    ");
+  $stmt->bind_param("i", $id_pedido);
+  $stmt->execute();
+  $data = $stmt->get_result()->fetch_assoc();
+
+  if ($data && !empty($data['cliente_email'])) {
+    emailCambioEstado(
+      $data,
+      ['nombre' => $data['cliente_nombre'], 'email' => $data['cliente_email']],
+      $nuevo_estado
+    );
+  }
+
   header('Location: pedidos.php?mensaje=ok');
   exit;
 }
