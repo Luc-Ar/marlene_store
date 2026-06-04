@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $metodo_pago = trim($_POST['metodo_pago'] ?? 'transferencia');
 
     // Validaciones básicas
-    if (!$nombre || !$apellido || !$email || !$calle || !$cp || !$localidad) {
+    if (!$nombre || !$apellido || !$email || !$calle || !$localidad) {
         $error = 'Por favor completá todos los campos obligatorios.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'El email no es válido.';
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO pedidos (id_cliente, numero_pedido, estado, total, peso_total, metodo_pago, notas, id_direccion)
             VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param("isddsssi", $id_cliente, $numero_pedido, $total, $peso_total, $metodo_pago, $notas, $id_direccion);
+        $stmt->bind_param("isddssi", $id_cliente, $numero_pedido, $total, $peso_total, $metodo_pago, $notas, $id_direccion);
         $stmt->execute();
         $id_pedido = $conexion->insert_id;
 
@@ -247,14 +247,34 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
         }
 
         .metodo-pago-opt {
-            border: 1px solid rgba(200, 152, 154, 0.3);
-            border-radius: 6px;
-            padding: 14px;
+            border: 1.5px solid rgba(200, 152, 154, 0.3);
+            border-radius: 8px;
+            padding: 16px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            background: white;
+            user-select: none;
+        }
+
+        .metodo-pago-opt:hover {
+            border-color: var(--marron);
+            background: rgba(92, 61, 62, 0.04);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(92, 61, 62, 0.08);
+        }
+
+        .metodo-pago-opt.seleccionado {
+            border-color: var(--marron);
+            background: rgba(92, 61, 62, 0.06);
+            box-shadow: 0 0 0 3px rgba(92, 61, 62, 0.1);
+        }
+
+        .metodo-pago-opt.seleccionado span {
+            color: var(--marron);
+            font-weight: 700;
         }
 
         .metodo-pago-opt input[type="radio"] {
@@ -408,15 +428,7 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
 
 <body>
     <?php include __DIR__ . '/includes/nav.php'; ?>
-    <nav>
-        <a href="index.php" class="logo-wrap">
-            <span class="logo-script">Marlene</span>
-            <span class="logo-store">STORE</span>
-        </a>
-        <ul class="nav-links">
-            <li><a href="catalogo.php">← Volver al catálogo</a></li>
-        </ul>
-    </nav>
+
 
     <div class="checkout-wrap">
 
@@ -609,41 +621,71 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
             }
         }
         async function buscarCPporLocalidad() {
-    const localidad  = document.getElementById('select-localidad-checkout').value;
-    const selectProv = document.getElementById('select-provincia-checkout');
-    const nombreProv = selectProv.options[selectProv.selectedIndex]?.dataset.nombre || '';
-    const inputCP    = document.getElementById('input-cp-checkout');
-    const cpStatus   = document.getElementById('cp-status');
+            const localidad = document.getElementById('select-localidad-checkout').value;
+            const selectProv = document.getElementById('select-provincia-checkout');
+            const nombreProv = selectProv.options[selectProv.selectedIndex]?.dataset.nombre || '';
+            const inputCP = document.getElementById('input-cp-checkout');
+            const cpStatus = document.getElementById('cp-status');
 
-    if (!localidad || !nombreProv) return;
+            if (!localidad || !nombreProv) return;
 
-    cpStatus.textContent = '⏳ Buscando código postal...';
-    cpStatus.style.color = '#C9A96E';
+            cpStatus.textContent = '⏳ Buscando código postal...';
+            cpStatus.style.color = '#C9A96E';
 
-    try {
-        // Buscar por localidad en zippopotam
-        const query = encodeURIComponent(localidad);
-        const res = await fetch(`https://api.zippopotam.us/ar/${query}`);
+            try {
+                // Usar georef para buscar el municipio y obtener datos
+                const nombre = nombreProv === 'Ciudad de Buenos Aires' ?
+                    'Ciudad Autónoma de Buenos Aires' : nombreProv;
 
-        if (res.ok) {
-            const data = await res.json();
-            if (data['post code']) {
-                inputCP.value = data['post code'];
-                cpStatus.textContent = '✓ Código postal encontrado';
-                cpStatus.style.color = '#16A34A';
-                return;
+                const url = `https://apis.datos.gob.ar/georef/api/municipios?nombre=${encodeURIComponent(localidad)}&provincia=${encodeURIComponent(nombre)}&max=1&campos=id,nombre`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.municipios?.length > 0) {
+                    const id = data.municipios[0].id;
+                    // Buscar CP con el ID del municipio en zippopotam
+                    const res2 = await fetch(`https://api.zippopotam.us/ar/${id}`);
+                    if (res2.ok) {
+                        const data2 = await res2.json();
+                        if (data2['post code']) {
+                            inputCP.value = data2['post code'];
+                            cpStatus.textContent = '✓ Código postal encontrado';
+                            cpStatus.style.color = '#16A34A';
+                            return;
+                        }
+                    }
+                }
+                // Si no encontró — el CP no es bloqueante
+                cpStatus.textContent = 'No encontramos el CP — escribilo vos si lo sabés';
+                cpStatus.style.color = '#999';
+                inputCP.removeAttribute('required');
+                inputCP.placeholder = 'Opcional — podés dejarlo vacío';
+            } catch (e) {
+                cpStatus.textContent = 'Escribí el código postal si lo sabés';
+                cpStatus.style.color = '#999';
+                inputCP.removeAttribute('required');
             }
         }
-        // Si no encontró
-        cpStatus.textContent = 'No encontramos el CP — escribilo vos';
-        cpStatus.style.color = '#999';
-        inputCP.value = '';
-        inputCP.focus();
-    } catch (e) {
-        cpStatus.textContent = 'Escribí el código postal manualmente';
-        cpStatus.style.color = '#999';
-    }
-}
+        // ─── Métodos de pago ───
+        document.querySelectorAll('.metodo-pago-opt').forEach(opt => {
+            opt.addEventListener('click', () => {
+                // Desmarcar todos
+                document.querySelectorAll('.metodo-pago-opt').forEach(o => o.classList.remove('seleccionado'));
+                // Marcar el clickeado
+                opt.classList.add('seleccionado');
+                // Activar el radio interno
+                const radio = opt.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+            });
+        });
+
+        // Marcar el primero por defecto
+        const primero = document.querySelector('.metodo-pago-opt');
+        if (primero) {
+            primero.classList.add('seleccionado');
+            const radio = primero.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        }
     </script>
 
 </body>

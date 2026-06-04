@@ -115,6 +115,9 @@ if (!$numero_pedido) {
             </a>
         </div>
     </div>
+    <script>
+        localStorage.removeItem('marlene_carrito');
+    </script>
 </body>
 
 </html>
