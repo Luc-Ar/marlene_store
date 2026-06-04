@@ -51,6 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("sssss", $nombre, $apellido, $email, $hash, $telefono);
             $stmt->execute();
             $id = $conexion->insert_id;
+            // Email de bienvenida
+            require_once __DIR__ . '/includes/emails.php';
+            $resultado = emailBienvenida(['nombre' => $nombre, 'email' => $email]);
+            error_log("Email bienvenida resultado: " . ($resultado ? 'OK' : 'FALLÓ'));
             $_SESSION['cliente_id']     = $id;
             $_SESSION['cliente_nombre'] = $nombre;
             $_SESSION['cliente_email']  = $email;
@@ -60,18 +64,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-function err($campo)
+function err(string $campo): void
 {
     global $errores;
     if (isset($errores[$campo])) {
         echo '<span class="field-error">⚠ ' . htmlspecialchars($errores[$campo]) . '</span>';
     }
 }
-function val($campo)
+function val(string $campo): void
 {
     echo htmlspecialchars($_POST[$campo] ?? '');
 }
-function hasErr($campo)
+function hasErr(string $campo): string
 {
     global $errores;
     return isset($errores[$campo]) ? 'error' : '';

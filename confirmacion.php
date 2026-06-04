@@ -1,5 +1,42 @@
 <?php
 session_start();
+require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/includes/emails.php';
+
+$numero_pedido = $_GET['pedido'] ?? $_SESSION['ultimo_pedido'] ?? '';
+if (!$numero_pedido) {
+    header('Location: index.php');
+    exit;
+}
+
+// Enviar email de confirmación
+$conexion = Database::getConexion();
+$stmt = $conexion->prepare("SELECT * FROM pedidos WHERE numero_pedido = ? LIMIT 1");
+$stmt->bind_param("s", $numero_pedido);
+$stmt->execute();
+$pedido = $stmt->get_result()->fetch_assoc();
+
+if ($pedido) {
+    // Traer items
+    $stmt2 = $conexion->prepare("SELECT * FROM pedido_items WHERE id_pedido = ?");
+    $stmt2->bind_param("i", $pedido['id']);
+    $stmt2->execute();
+    $items = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
+
+    // Traer cliente
+    $stmt3 = $conexion->prepare("SELECT * FROM clientes WHERE id = ? LIMIT 1");
+    $stmt3->bind_param("i", $pedido['id_cliente']);
+    $stmt3->execute();
+    $cliente = $stmt3->get_result()->fetch_assoc();
+
+    if ($cliente && !isset($_SESSION['email_enviado_' . $numero_pedido])) {
+        emailConfirmacionPedido($pedido, $items, $cliente);
+        $_SESSION['email_enviado_' . $numero_pedido] = true;
+    }
+}
+?>
+<?php
+session_start();
 $numero_pedido = $_GET['pedido'] ?? $_SESSION['ultimo_pedido'] ?? '';
 if (!$numero_pedido) {
     header('Location: index.php');

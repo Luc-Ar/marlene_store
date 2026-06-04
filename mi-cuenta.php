@@ -617,36 +617,37 @@ $estados = [
             document.getElementById('tab-' + tab).classList.add('activo');
             btn.classList.add('activo');
         }
+        // Abrir tab desde URL
+        const urlTab = new URLSearchParams(window.location.search).get('tab');
+        if (urlTab) {
+            const btn = document.querySelector(`.tab-btn[onclick*="${urlTab}"]`);
+            if (btn) btn.click();
+        }
+
+        // Toggle form dirección
+        function toggleFormDireccion() {
+            const form = document.getElementById('form-direccion');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Autocompletar CP
+        const cpInput = document.getElementById('cp-nueva');
+        if (cpInput) {
+            cpInput.addEventListener('blur', function() {
+                const cp = this.value.trim();
+                if (cp.length < 4) return;
+                fetch(`https://api.zippopotam.us/ar/${cp}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.places && data.places[0]) {
+                            document.getElementById('localidad-nueva').value = data.places[0]['place name'];
+                        }
+                    })
+                    .catch(() => {});
+            });
+        }
     </script>
-    // Abrir tab desde URL
-    const urlTab = new URLSearchParams(window.location.search).get('tab');
-    if (urlTab) {
-    const btn = document.querySelector(`.tab-btn[onclick*="${urlTab}"]`);
-    if (btn) btn.click();
-    }
 
-    // Toggle form dirección
-    function toggleFormDireccion() {
-    const form = document.getElementById('form-direccion');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
-    }
-
-    // Autocompletar CP
-    const cpInput = document.getElementById('cp-nueva');
-    if (cpInput) {
-    cpInput.addEventListener('blur', function() {
-    const cp = this.value.trim();
-    if (cp.length < 4) return;
-        fetch(`https://api.zippopotam.us/ar/${cp}`)
-        .then(r=> r.json())
-        .then(data => {
-        if (data.places && data.places[0]) {
-        document.getElementById('localidad-nueva').value = data.places[0]['place name'];
-        }
-        })
-        .catch(() => {});
-        });
-        }
 </body>
 
 </html>
