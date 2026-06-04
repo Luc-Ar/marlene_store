@@ -136,8 +136,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['carrito'] = [];
         $_SESSION['ultimo_pedido'] = $numero_pedido;
 
-        // ─── Redirigir a confirmación ───
-        header("Location: confirmacion.php?pedido=$numero_pedido");
+        // Guardar pedido en sesión para MP
+        $_SESSION['pedido_pendiente_pago'] = [
+            'numero_pedido' => $numero_pedido,
+            'id_pedido'     => $id_pedido,
+            'total'         => $total,
+        ];
+
+        // Si eligió WhatsApp, ir directo a confirmación
+        if (isset($_GET['metodo']) && $_GET['metodo'] === 'whatsapp') {
+            header("Location: confirmacion.php?pedido=$numero_pedido");
+            exit;
+        }
+
+        // Si eligió MP, ir a pago
+        header("Location: pago.php");
         exit;
     }
 }
@@ -571,7 +584,12 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
             </div>
 
             <button class="btn-confirmar" onclick="document.querySelector('form').submit()">
-                CONFIRMAR PEDIDO →
+                💳 Pagar con MercadoPago
+            </button>
+            <button class="btn-confirmar"
+                style="background:#25D366; margin-top:10px;"
+                onclick="document.querySelector('form').setAttribute('action','checkout.php?metodo=whatsapp'); document.querySelector('form').submit()">
+                💬 Coordinar por WhatsApp
             </button>
 
             <p style="font-size:0.65rem; color:#999; text-align:center; margin-top:12px;">
