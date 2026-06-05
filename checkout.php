@@ -11,6 +11,14 @@ if (empty($_SESSION['carrito'])) {
 $conexion = Database::getConexion();
 $error = '';
 $exito = false;
+// Precargar datos del cliente si está logueado
+$cliente_logueado = null;
+if (isset($_SESSION['cliente_id'])) {
+    $stmt = $conexion->prepare("SELECT * FROM clientes WHERE id = ? LIMIT 1");
+    $stmt->bind_param("i", $_SESSION['cliente_id']);
+    $stmt->execute();
+    $cliente_logueado = $stmt->get_result()->fetch_assoc();
+}
 // Cargar provincias siempre
 $stmt_provs = $conexion->prepare("SELECT id, nombre FROM provincias ORDER BY nombre ASC");
 $stmt_provs->execute();
@@ -460,11 +468,7 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
             <?php if ($error): ?>
                 <div class="error-msg">⚠️ <?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
-            <!-- SOLO DESARROLLO - BORRAR ANTES DEL DEPLOY -->
-            <button type="button" onclick="rellenarPrueba()"
-                style="width:100%;padding:10px;background:#F59E0B;color:white;border:none;border-radius:4px;font-family:'Montserrat',sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer;margin-bottom:20px;">
-                🧪 RELLENAR DATOS DE PRUEBA
-            </button>
+
             <form method="POST">
 
                 <!-- Datos personales -->
@@ -473,51 +477,51 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Nombre *</label>
-                            <input type="text" name="nombre" value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>Apellido *</label>
-                            <input type="text" name="apellido" value="<?= htmlspecialchars($_POST['apellido'] ?? '') ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>Email *</label>
-                            <input type="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>Teléfono</label>
-                            <input type="tel" name="telefono" value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dirección de envío -->
-                <div class="checkout-seccion">
-                    <h3>📦 Dirección de envío</h3>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Calle *</label>
-                            <input type="text" name="calle" value="<?= htmlspecialchars($_POST['calle'] ?? '') ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>Altura / Número</label>
-                            <input type="number" name="altura" value="<?= htmlspecialchars($_POST['altura'] ?? '') ?>">
+                            <input type="text" name="nombre" value="<?= htmlspecialchars($_POST['nombre'] ?? $cliente_logueado['nombre'] ?? '') ?>"
+                                </div>
+                            <div class="form-group">
+                                <label>Apellido *</label>
+                                <input type="text" name="apellido" value="<?= htmlspecialchars($_POST['apellido'] ?? $cliente_logueado['apellido'] ?? '') ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>Email *</label>
+                                <input type="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? $cliente_logueado['email'] ?? '') ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input type="tel" name="telefono" value="<?= htmlspecialchars($_POST['telefono'] ?? $cliente_logueado['telefono'] ?? '') ?>"
+                                    </div>
+                            </div>
                         </div>
 
-                        <div class="form-group full">
-                            <label>Provincia *</label>
-                            <select name="id_provincia" id="select-provincia-checkout"
-                                onchange="cargarLocalidadesCheckout()">
-                                <option value="">— Seleccioná tu provincia —</option>
-                                <?php foreach ($provincias as $prov): ?>
-                                    <option value="<?= $prov['id'] ?>"
-                                        data-nombre="<?= htmlspecialchars($prov['nombre']) ?>"
-                                        <?= ($_POST['id_provincia'] ?? '') == $prov['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($prov['nombre']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <!-- <div class="form-group full">
+                        <!-- Dirección de envío -->
+                        <div class="checkout-seccion">
+                            <h3>📦 Dirección de envío</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Calle *</label>
+                                    <input type="text" name="calle" value="<?= htmlspecialchars($_POST['calle'] ?? '') ?>">
+                                </div>
+                                <div class="form-group">
+                                    <label>Altura / Número</label>
+                                    <input type="number" name="altura" value="<?= htmlspecialchars($_POST['altura'] ?? '') ?>">
+                                </div>
+
+                                <div class="form-group full">
+                                    <label>Provincia *</label>
+                                    <select name="id_provincia" id="select-provincia-checkout"
+                                        onchange="cargarLocalidadesCheckout()">
+                                        <option value="">— Seleccioná tu provincia —</option>
+                                        <?php foreach ($provincias as $prov): ?>
+                                            <option value="<?= $prov['id'] ?>"
+                                                data-nombre="<?= htmlspecialchars($prov['nombre']) ?>"
+                                                <?= ($_POST['id_provincia'] ?? '') == $prov['id'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($prov['nombre']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <!-- <div class="form-group full">
                             <label>Localidad *</label>
                             <select name="localidad" id="select-localidad-checkout" required disabled
                                 onchange="buscarCPporLocalidad()">
@@ -527,55 +531,55 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
                                 ⏳ Cargando localidades...
                             </span>
                         </div> -->
-                        <div class="form-group full">
-                            <label>Localidad *</label>
-                            <input type="text" name="localidad" id="select-localidad-checkout"
-                                placeholder="Escribí tu localidad">
+                                <div class="form-group full">
+                                    <label>Localidad *</label>
+                                    <input type="text" name="localidad" id="select-localidad-checkout"
+                                        placeholder="Escribí tu localidad">
+                                </div>
+                                <div class="form-group">
+                                    <label>Código Postal *</label>
+                                    <input type="text" name="codigo_postal" id="input-cp-checkout" required
+                                        placeholder="Se completa automático"
+                                        value="<?= htmlspecialchars($_POST['codigo_postal'] ?? '') ?>">
+                                    <span id="cp-status" style="font-size:0.65rem;color:#999;margin-top:4px;display:block;"></span>
+                                </div>
+                                <div class="form-group full">
+                                    <label>Descripción adicional</label>
+                                    <textarea name="descripcion_adicional" rows="2" placeholder="Piso, depto, referencias..."><?= htmlspecialchars($_POST['descripcion_adicional'] ?? '') ?></textarea>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Código Postal *</label>
-                            <input type="text" name="codigo_postal" id="input-cp-checkout" required
-                                placeholder="Se completa automático"
-                                value="<?= htmlspecialchars($_POST['codigo_postal'] ?? '') ?>">
-                            <span id="cp-status" style="font-size:0.65rem;color:#999;margin-top:4px;display:block;"></span>
-                        </div>
-                        <div class="form-group full">
-                            <label>Descripción adicional</label>
-                            <textarea name="descripcion_adicional" rows="2" placeholder="Piso, depto, referencias..."><?= htmlspecialchars($_POST['descripcion_adicional'] ?? '') ?></textarea>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Método de pago -->
-                <div class="checkout-seccion">
-                    <h3>💳 Método de pago</h3>
-                    <div class="metodo-pago-grid">
-                        <label class="metodo-pago-opt" id="opt-transferencia">
-                            <input type="radio" name="metodo_pago" value="transferencia" checked>
-                            <span>🏦 Transferencia bancaria</span>
-                        </label>
-                        <label class="metodo-pago-opt" id="opt-efectivo">
-                            <input type="radio" name="metodo_pago" value="efectivo">
-                            <span>💵 Efectivo al retirar</span>
-                        </label>
-                        <label class="metodo-pago-opt" id="opt-mercadopago">
-                            <input type="radio" name="metodo_pago" value="mercadopago">
-                            <span>💙 MercadoPago</span>
-                        </label>
-                        <label class="metodo-pago-opt" id="opt-whatsapp">
-                            <input type="radio" name="metodo_pago" value="whatsapp">
-                            <span>💬 Coordinar por WhatsApp</span>
-                        </label>
-                    </div>
-                </div>
+                        <!-- Método de pago -->
+                        <div class="checkout-seccion">
+                            <h3>💳 Método de pago</h3>
+                            <div class="metodo-pago-grid">
+                                <label class="metodo-pago-opt" id="opt-transferencia">
+                                    <input type="radio" name="metodo_pago" value="transferencia" checked>
+                                    <span>🏦 Transferencia bancaria</span>
+                                </label>
+                                <label class="metodo-pago-opt" id="opt-efectivo">
+                                    <input type="radio" name="metodo_pago" value="efectivo">
+                                    <span>💵 Efectivo al retirar</span>
+                                </label>
+                                <label class="metodo-pago-opt" id="opt-mercadopago">
+                                    <input type="radio" name="metodo_pago" value="mercadopago">
+                                    <span>💙 MercadoPago</span>
+                                </label>
+                                <label class="metodo-pago-opt" id="opt-whatsapp">
+                                    <input type="radio" name="metodo_pago" value="whatsapp">
+                                    <span>💬 Coordinar por WhatsApp</span>
+                                </label>
+                            </div>
+                        </div>
 
-                <!-- Notas -->
-                <div class="checkout-seccion">
-                    <h3>📝 Notas del pedido</h3>
-                    <div class="form-group">
-                        <textarea name="notas" rows="3" placeholder="Instrucciones especiales, horarios de entrega..."><?= htmlspecialchars($_POST['notas'] ?? '') ?></textarea>
-                    </div>
-                </div>
+                        <!-- Notas -->
+                        <div class="checkout-seccion">
+                            <h3>📝 Notas del pedido</h3>
+                            <div class="form-group">
+                                <textarea name="notas" rows="3" placeholder="Instrucciones especiales, horarios de entrega..."><?= htmlspecialchars($_POST['notas'] ?? '') ?></textarea>
+                            </div>
+                        </div>
 
             </form>
         </div>
@@ -735,34 +739,7 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
             btn.disabled = true;
             document.querySelector('form').submit();
         }
-
-        function rellenarPrueba() {
-            document.querySelector('[name="nombre"]').value = 'Lucas';
-            document.querySelector('[name="apellido"]').value = 'Test';
-            document.querySelector('[name="email"]').value = 'test@test.com';
-            document.querySelector('[name="telefono"]').value = '3704123456';
-            document.querySelector('[name="calle"]').value = 'San Martín';
-            document.querySelector('[name="altura"]').value = '1234';
-            document.querySelector('[name="codigo_postal"]').value = '3300';
-            document.querySelector('[name="localidad"]').value = 'Posadas';
-
-            // Seleccionar provincia Misiones
-            const selectProv = document.getElementById('select-provincia-checkout');
-            for (let i = 0; i < selectProv.options.length; i++) {
-                if (selectProv.options[i].text.includes('Misiones')) {
-                    selectProv.selectedIndex = i;
-                    break;
-                }
-            }
-
-            // Seleccionar MercadoPago
-            document.querySelectorAll('.metodo-pago-opt').forEach(opt => opt.classList.remove('seleccionado'));
-            const mpOpt = document.querySelector('input[value="mercadopago"]');
-            if (mpOpt) {
-                mpOpt.checked = true;
-                mpOpt.closest('.metodo-pago-opt').classList.add('seleccionado');
-            }
-        }
+        c
     </script>
 
 </body>
