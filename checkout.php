@@ -73,23 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id_localidad = $conexion->insert_id;
             }
         }
-
-
-        // // ─── Buscar o crear localidad ───
-        // // $stmt = $conexion->prepare("SELECT id FROM localidades WHERE nombre = ? LIMIT 1");
-        // // $stmt->bind_param("s", $localidad);
-        // // $stmt->execute();
-        // // $loc = $stmt->get_result()->fetch_assoc();
-
-        // if ($loc) {
-        //     $id_localidad = $loc['id'];
-        // } else {
-        //     $stmt = $conexion->prepare("INSERT INTO localidades (nombre) VALUES (?)");
-        //     $stmt->bind_param("s", $localidad);
-        //     $stmt->execute();
-        //     $id_localidad = $conexion->insert_id;
-        // }
-
         // ─── Guardar dirección ───
         $stmt = $conexion->prepare("INSERT INTO direcciones (id_cliente, calle, altura, codigo_postal, id_localidad) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("isisi", $id_cliente, $calle, $altura, $cp, $id_localidad);
@@ -131,10 +114,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt2->bind_param("ii", $item['cantidad'], $item['id']);
             $stmt2->execute();
         }
-
-        // ─── Limpiar carrito ───
+        // ─── Limpiar carrito de sesión ───
         $_SESSION['carrito'] = [];
         $_SESSION['ultimo_pedido'] = $numero_pedido;
+
+        // ─── Guardar pedido para MP ───
+        $_SESSION['pedido_pendiente_pago'] = [
+            'numero_pedido' => $numero_pedido,
+            'id_pedido'     => $id_pedido,
+            'total'         => $total,
+            'items'         => array_values($_SESSION['carrito'] ?? []),
+        ];
+
+        // ─── Redirigir según método de pago ───
+        if ($metodo_pago === 'mercadopago') {
+            header("Location: pago.php");
+        } else {
+            header("Location: confirmacion.php?pedido=$numero_pedido");
+        }
+        exit;
+
 
         // Guardar pedido en sesión para MP
         $_SESSION['pedido_pendiente_pago'] = [
@@ -440,8 +439,17 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
 </head>
 
 <body>
-    <?php include __DIR__ . '/includes/nav.php'; ?>
 
+
+    <nav>
+        <a href="index.php" class="logo-wrap">
+            <span class="logo-script">Marlene</span>
+            <span class="logo-store">STORE</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="catalogo.php">← Volver al catálogo</a></li>
+        </ul>
+    </nav>
 
     <div class="checkout-wrap">
 
@@ -452,7 +460,11 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
             <?php if ($error): ?>
                 <div class="error-msg">⚠️ <?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
-
+            <!-- SOLO DESARROLLO - BORRAR ANTES DEL DEPLOY -->
+            <button type="button" onclick="rellenarPrueba()"
+                style="width:100%;padding:10px;background:#F59E0B;color:white;border:none;border-radius:4px;font-family:'Montserrat',sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer;margin-bottom:20px;">
+                🧪 RELLENAR DATOS DE PRUEBA
+            </button>
             <form method="POST">
 
                 <!-- Datos personales -->
@@ -461,15 +473,15 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Nombre *</label>
-                            <input type="text" name="nombre" required value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>">
+                            <input type="text" name="nombre" value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Apellido *</label>
-                            <input type="text" name="apellido" required value="<?= htmlspecialchars($_POST['apellido'] ?? '') ?>">
+                            <input type="text" name="apellido" value="<?= htmlspecialchars($_POST['apellido'] ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Email *</label>
-                            <input type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                            <input type="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Teléfono</label>
@@ -484,7 +496,7 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Calle *</label>
-                            <input type="text" name="calle" required value="<?= htmlspecialchars($_POST['calle'] ?? '') ?>">
+                            <input type="text" name="calle" value="<?= htmlspecialchars($_POST['calle'] ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Altura / Número</label>
@@ -493,7 +505,7 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
 
                         <div class="form-group full">
                             <label>Provincia *</label>
-                            <select name="id_provincia" id="select-provincia-checkout" required
+                            <select name="id_provincia" id="select-provincia-checkout"
                                 onchange="cargarLocalidadesCheckout()">
                                 <option value="">— Seleccioná tu provincia —</option>
                                 <?php foreach ($provincias as $prov): ?>
@@ -505,7 +517,7 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group full">
+                        <!-- <div class="form-group full">
                             <label>Localidad *</label>
                             <select name="localidad" id="select-localidad-checkout" required disabled
                                 onchange="buscarCPporLocalidad()">
@@ -514,6 +526,11 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
                             <span id="loading-localidades" style="font-size:0.7rem;color:#C9A96E;margin-top:4px;display:none;">
                                 ⏳ Cargando localidades...
                             </span>
+                        </div> -->
+                        <div class="form-group full">
+                            <label>Localidad *</label>
+                            <input type="text" name="localidad" id="select-localidad-checkout"
+                                placeholder="Escribí tu localidad">
                         </div>
                         <div class="form-group">
                             <label>Código Postal *</label>
@@ -603,7 +620,7 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
         async function cargarLocalidadesCheckout(id_provincia) {
             const select = document.getElementById('select-localidad-checkout');
             const loading = document.getElementById('loading-localidades');
-            const nombreProv = document.querySelector('#select-provincia-checkout option:checked').textContent;
+            const nombreProv = document.querySelector('#select-provincia-checkout option:checked').textContent.trim();
 
             select.disabled = true;
             select.innerHTML = '<option value="">Cargando...</option>';
@@ -703,6 +720,48 @@ $cantidad = array_sum(array_column($items, 'cantidad'));
             primero.classList.add('seleccionado');
             const radio = primero.querySelector('input[type="radio"]');
             if (radio) radio.checked = true;
+        }
+
+        function confirmarPedido() {
+            const metodo = document.querySelector('input[name="metodo_pago"]:checked')?.value;
+            const btn = document.getElementById('btn-confirmar');
+
+            if (metodo === 'mercadopago') {
+                btn.textContent = '💙 Ir a MercadoPago...';
+                btn.style.background = '#009EE3';
+            } else {
+                btn.textContent = 'Procesando...';
+            }
+            btn.disabled = true;
+            document.querySelector('form').submit();
+        }
+
+        function rellenarPrueba() {
+            document.querySelector('[name="nombre"]').value = 'Lucas';
+            document.querySelector('[name="apellido"]').value = 'Test';
+            document.querySelector('[name="email"]').value = 'test@test.com';
+            document.querySelector('[name="telefono"]').value = '3704123456';
+            document.querySelector('[name="calle"]').value = 'San Martín';
+            document.querySelector('[name="altura"]').value = '1234';
+            document.querySelector('[name="codigo_postal"]').value = '3300';
+            document.querySelector('[name="localidad"]').value = 'Posadas';
+
+            // Seleccionar provincia Misiones
+            const selectProv = document.getElementById('select-provincia-checkout');
+            for (let i = 0; i < selectProv.options.length; i++) {
+                if (selectProv.options[i].text.includes('Misiones')) {
+                    selectProv.selectedIndex = i;
+                    break;
+                }
+            }
+
+            // Seleccionar MercadoPago
+            document.querySelectorAll('.metodo-pago-opt').forEach(opt => opt.classList.remove('seleccionado'));
+            const mpOpt = document.querySelector('input[value="mercadopago"]');
+            if (mpOpt) {
+                mpOpt.checked = true;
+                mpOpt.closest('.metodo-pago-opt').classList.add('seleccionado');
+            }
         }
     </script>
 

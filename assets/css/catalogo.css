@@ -584,6 +584,38 @@
   background: var(--dorado, #C9A96E);
 }
 
+/* ─── BOTÓN FINALIZAR COMPRA ─── */
+.btn-checkout {
+  width: 100%;
+  background: var(--marlene, #5C3D3E);
+  color: var(--crema, #FAF6F1);
+  border: none;
+  padding: 16px;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.3s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-checkout::before {
+  content: '🛒';
+  font-size: 1rem;
+}
+
+.btn-checkout:hover {
+  background: var(--dorado, #C9A96E);
+  transform: translateY(-1px);
+}
+
 /* ─── RESPONSIVE ─── */
 @media (max-width: 900px) {
   .catalogo-grid {
