@@ -1,6 +1,6 @@
 <?php
 session_start();
-ini_set('display_errors', 1); // Lo prendemos un segundo para ver si hay algún otro fallo
+ini_set('display_errors', 0); // Lo prendemos un segundo para ver si hay algún otro fallo
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../config/Database.php';

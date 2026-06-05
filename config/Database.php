@@ -12,7 +12,7 @@ class Database
             $env = file_exists($envFile) ? parse_ini_file($envFile) : [];
 
             $host = $env['DB_HOST'] ?? 'localhost';
-            $user = $env['DB_USER'] ?? 'root';
+            $user = $env['DB_USER'] ?? '';
             $pass = $env['DB_PASS'] ?? '';
             $name = $env['DB_NAME'] ?? 'marlene_store';
 
