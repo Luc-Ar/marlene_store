@@ -1,18 +1,12 @@
 <?php
+session_start();
 require_once __DIR__ . '/config/Database.php';
 $conexion = Database::getConexion();
 
-// Traer TODOS los productos activos siempre
+// Traer todos los productos activos
 $stmt = $conexion->prepare("SELECT * FROM productos WHERE activo = 1 ORDER BY orden_display ASC, id ASC");
 $stmt->execute();
-$resultado = $stmt->get_result();
-
-$productos = [];
-while ($fila = $resultado->fetch_assoc()) {
-  $productos[] = $fila;
-}
-
-
+$productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -32,16 +26,22 @@ while ($fila = $resultado->fetch_assoc()) {
 </head>
 
 <body>
+
   <?php include __DIR__ . '/includes/nav.php'; ?>
+
   <div class="cat-header">
     <div class="cat-header-inner">
       <p class="cat-breadcrumb">
         <a href="index.php">INICIO</a> <span>›</span>
         <span>CATÁLOGO</span>
       </p>
-      <h1 class="cat-header-title">Catálogo</h1>
-
-      <div class="filtros" id="filtros-container">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;">
+        <h1 class="cat-header-title">CATÁLOGO</h1>
+        <span style="font-family:'Montserrat',sans-serif;font-size:0.62rem;color:#999;letter-spacing:1px;">
+          <?= count($productos) ?> productos
+        </span>
+      </div>
+      <div class="filtros-bar" id="filtros-container">
         <button class="filtro-btn activo" data-seccion="todos">Todos</button>
         <?php
         $stmtCats = $conexion->prepare("SELECT id, nombre, slug, icono FROM categorias WHERE activo = 1 ORDER BY orden_display ASC");
@@ -58,7 +58,6 @@ while ($fila = $resultado->fetch_assoc()) {
   </div>
 
   <?php
-  // Reiniciar consulta de categorías
   $stmtCats2 = $conexion->prepare("SELECT id, nombre, slug, icono FROM categorias WHERE activo = 1 ORDER BY orden_display ASC");
   $stmtCats2->execute();
   $cats2 = $stmtCats2->get_result();
@@ -73,7 +72,6 @@ while ($fila = $resultado->fetch_assoc()) {
       </div>
       <div class="catalogo-grid">
         <?php foreach ($productos as $p):
-          // Buscar si el producto pertenece a esta categoría
           if ((int)$p['categoria'] !== (int)$cat['id']) continue;
           $hay = true;
         ?>
@@ -88,27 +86,29 @@ while ($fila = $resultado->fetch_assoc()) {
               <p class="cat-prod-desc"><?= htmlspecialchars($p['descripcion_corta'] ?? '') ?></p>
               <div class="cat-prod-foot">
                 <span class="cat-prod-precio">$<?= number_format($p['precio'], 0, ',', '.') ?></span>
-                <a href="producto.php?id=<?= $p['id'] ?>" class="cat-prod-btn-agregar">Ver producto</a>
-                <div><button class="cat-prod-btn-agregar"
+                <div style="display:flex;gap:6px;">
+                  <a href="producto.php?id=<?= $p['id'] ?>" class="cat-prod-btn-agregar" style="background:transparent;color:var(--marron);border:1px solid var(--marron);">Ver</a>
+                  <button class="cat-prod-btn-agregar"
                     onclick="agregarAlCarrito(this, '<?= addslashes($p['nombre']) ?>', '<?= $p['imagen_principal'] ?>', '<?= addslashes($cat['nombre']) ?>', <?= $p['precio'] ?>)">
                     + Agregar
-                  </button></div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         <?php endforeach; ?>
         <?php if (!$hay): ?>
-          <p style="color:#999; padding: 20px; grid-column: 1/-1;">No hay productos en esta categoría aún.</p>
+          <p style="color:#999;padding:20px;grid-column:1/-1;">No hay productos en esta categoría aún.</p>
         <?php endif; ?>
       </div>
     </section>
   <?php endwhile; ?>
 
+  <?php include __DIR__ . '/includes/carrito-panel.php'; ?>
+  <script src="assets/js/catalogo.js"></script>
   <script>
     document.body.style.visibility = 'visible';
   </script>
-  <?php include __DIR__ . '/includes/carrito-panel.php'; ?>
-  <script src="assets/js/catalogo.js"></script>
 </body>
 
 </html>

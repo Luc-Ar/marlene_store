@@ -3,28 +3,27 @@
    ========================================= */
 
 /* ─── HEADER DEL CATÁLOGO ─── */
+/* ─── HEADER CATÁLOGO ─── */
 .cat-header {
   background: var(--crema2);
-  padding: 140px 6% 60px;
-  border-bottom: 1px solid rgba(200, 152, 154, 0.2);
+  padding: 90px 6% 0;
+  border-bottom: 1px solid rgba(200, 152, 154, 0.15);
 }
 
 .cat-header-inner {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 24px;
+  flex-direction: column;
+  gap: 0;
 }
 
 .cat-breadcrumb {
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   font-weight: 600;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--dorado);
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .cat-breadcrumb a {
@@ -39,54 +38,59 @@
 
 .cat-breadcrumb span {
   color: var(--rosa-osc);
-  margin: 0 8px;
+  margin: 0 6px;
 }
 
 .cat-header-title {
-  font-family: 'Great Vibes', cursive;
-  font-size: clamp(3rem, 6vw, 5rem);
-  color: var(--marron);
-  line-height: 1;
-}
-
-.cat-header-count {
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 2px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  color: var(--rosa-osc);
-  margin-bottom: 8px;
+  color: var(--marron);
+  margin-bottom: 20px;
 }
 
-/* ─── FILTROS ─── */
-.filtros {
-  padding: 36px 6% 0;
+/* ─── BARRA DE FILTROS ─── */
+.filtros-bar {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  border-top: 1px solid rgba(200, 152, 154, 0.2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filtros-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .filtro-btn {
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  padding: 10px 22px;
-  border-radius: 2px;
-  border: 1px solid rgba(200, 152, 154, 0.4);
+  padding: 16px 20px;
+  border: none;
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--marron);
+  color: #999;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
-.filtro-btn:hover,
+.filtro-btn:hover {
+  color: var(--marron);
+  border-bottom-color: rgba(92, 61, 62, 0.3);
+}
+
 .filtro-btn.activo {
-  background: var(--marron);
-  color: var(--crema);
-  border-color: var(--marron);
+  color: var(--marron);
+  border-bottom-color: var(--marron);
+  background: transparent;
 }
 
 /* ─── SECCIONES ─── */

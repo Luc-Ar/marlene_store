@@ -9,21 +9,19 @@ $stmt = $conexion->prepare("
     FROM productos p
     LEFT JOIN categorias c ON p.categoria = c.id
     WHERE p.activo = 1 AND p.destacado = 1
-    ORDER BY p.orden_display ASC
-    LIMIT 6
+    ORDER BY p.orden_display ASC LIMIT 6
 ");
 $stmt->execute();
 $destacados = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Si no hay destacados, traer los últimos 6
+// Si no hay destacados traer los últimos 6
 if (empty($destacados)) {
   $stmt = $conexion->prepare("
         SELECT p.*, c.nombre as categoria_nombre, c.slug as categoria_slug
         FROM productos p
         LEFT JOIN categorias c ON p.categoria = c.id
         WHERE p.activo = 1
-        ORDER BY p.id DESC
-        LIMIT 6
+        ORDER BY p.id DESC LIMIT 6
     ");
   $stmt->execute();
   $destacados = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -55,7 +53,7 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
   <?php include __DIR__ . '/includes/nav.php'; ?>
 
-  <!-- ─── HERO ─── -->
+  <!-- HERO -->
   <section class="hero">
     <div class="hero-left">
       <p class="hero-tag">✦ Bienvenida a nuestra tienda</p>
@@ -88,7 +86,7 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
   </section>
 
-  <!-- ─── RIBBON ─── -->
+  <!-- RIBBON -->
   <div class="ribbon">
     <div class="ribbon-item"><span class="dot"></span>🚚 Envíos por OCA y Correo Argentino</div>
     <div class="ribbon-item"><span class="dot"></span>📦 A todo el país</div>
@@ -96,7 +94,7 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <div class="ribbon-item"><span class="dot"></span>💳 Efectivo · Transferencia · Tarjeta</div>
   </div>
 
-  <!-- ─── CATEGORÍAS DESDE BD ─── -->
+  <!-- CATEGORÍAS DESDE BD -->
   <section class="cats-section" id="categorias">
     <p class="s-eyebrow">✦ Lo que encontrás</p>
     <h2 class="s-title">Nuestras Categorías</h2>
@@ -112,7 +110,7 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
   </section>
 
-  <!-- ─── PRODUCTOS DESTACADOS DESDE BD ─── -->
+  <!-- PRODUCTOS DESTACADOS DESDE BD -->
   <section class="prods-section" id="productos">
     <p class="s-eyebrow">✦ Lo más pedido</p>
     <h2 class="s-title">Productos Destacados</h2>
@@ -120,16 +118,13 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <div class="prod-grid">
       <?php foreach ($destacados as $p): ?>
         <div class="prod-card">
-          <div class="prod-visual" style="background:#FAF6F1; height:200px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;">
+          <div class="prod-visual" style="background:#FAF6F1;height:200px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
             <?php if ($p['imagen_principal']): ?>
               <img src="<?= htmlspecialchars($p['imagen_principal']) ?>"
                 alt="<?= htmlspecialchars($p['nombre']) ?>"
-                style="width:100%; height:100%; object-fit:contain; padding:10px;">
+                style="width:100%;height:100%;object-fit:contain;padding:10px;">
             <?php else: ?>
               <span style="font-size:4rem;">🛍️</span>
-            <?php endif; ?>
-            <?php if ($p['destacado']): ?>
-              <span class="prod-badge">Destacado</span>
             <?php endif; ?>
             <?php if ($p['precio_oferta']): ?>
               <span class="prod-badge" style="top:auto;bottom:12px;background:#C0392B;">OFERTA</span>
@@ -140,29 +135,27 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             <h3 class="prod-name"><?= htmlspecialchars($p['nombre']) ?></h3>
             <p class="prod-desc"><?= htmlspecialchars($p['descripcion_corta'] ?? '') ?></p>
             <div class="prod-foot">
-              <span class="prod-price">
-                $<?= number_format($p['precio'], 0, ',', '.') ?>
-              </span>
+              <span class="prod-price">$<?= number_format($p['precio'], 0, ',', '.') ?></span>
               <a href="producto.php?id=<?= $p['id'] ?>" class="prod-btn">Ver producto →</a>
             </div>
           </div>
         </div>
       <?php endforeach; ?>
     </div>
-    <div style="text-align:center; margin-top:40px;">
+    <div style="text-align:center;margin-top:40px;">
       <a href="catalogo.php" class="btn-main">Ver todos los productos</a>
     </div>
   </section>
 
-  <!-- ─── BANNER MID ─── -->
+  <!-- BANNER MID -->
   <div class="banner-mid">
     <p class="s-eyebrow">✦ Siempre para vos</p>
     <h2 class="bm-title">¿No encontrás lo que buscás?</h2>
-    <p class="bm-sub">Escribinos por WhatsApp y te ayudamos a encontrar exactamente lo que necesitás. ¡Respondemos rápido!</p>
+    <p class="bm-sub">Escribinos por WhatsApp y te ayudamos a encontrar exactamente lo que necesitás.</p>
     <a href="#contacto" class="btn-main">Escribinos ahora</a>
   </div>
 
-  <!-- ─── CONTACTO ─── -->
+  <!-- CONTACTO -->
   <section class="contacto-section" id="contacto">
     <p class="s-eyebrow">✦ Hablemos</p>
     <h2 class="s-title">Contacto</h2>
@@ -170,7 +163,7 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <div class="contact-layout">
       <div class="contact-left">
         <h3>Estamos para vos</h3>
-        <p>Cualquier consulta, pedido especial o duda que tengas, no dudes en escribirnos. Atención personalizada siempre.</p>
+        <p>Cualquier consulta, pedido especial o duda que tengas, no dudes en escribirnos.</p>
         <div class="c-info-item">
           <div class="c-icon">📱</div>
           <div><strong>WhatsApp</strong><span>La forma más rápida de comunicarte con nosotras</span></div>
@@ -212,14 +205,14 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
         <div class="cf-group">
           <label>Mensaje</label>
-          <textarea placeholder="Contanos qué necesitás, qué talle, color o cualquier detalle..."></textarea>
+          <textarea placeholder="Contanos qué necesitás..."></textarea>
         </div>
         <button class="cf-submit">Enviar mensaje →</button>
       </div>
     </div>
   </section>
 
-  <!-- ─── ENVÍOS ─── -->
+  <!-- ENVÍOS -->
   <section class="envios-section" id="envios">
     <p class="s-eyebrow">✦ Enviamos a todo el país</p>
     <h2 class="s-title">Información de Envíos</h2>
@@ -238,7 +231,7 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
       <div class="envio-card">
         <div class="envio-icon">🏣</div>
         <h3>Correo Argentino</h3>
-        <p>Llega hasta los rincones más remotos del país. Ideal para zonas donde OCA no cubre.</p>
+        <p>Llega hasta los rincones más remotos del país.</p>
         <ul>
           <li>✓ Cobertura nacional total</li>
           <li>✓ Entrega en 3 a 7 días hábiles</li>
@@ -248,11 +241,11 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
       <div class="envio-card">
         <div class="envio-icon">💬</div>
         <h3>¿Cómo comprar?</h3>
-        <p>El proceso es simple y rápido. Te acompañamos en cada paso.</p>
+        <p>El proceso es simple y rápido.</p>
         <ul>
           <li>1️⃣ Elegís tu producto</li>
-          <li>2️⃣ Nos escribís por WhatsApp</li>
-          <li>3️⃣ Coordinamos el envío y el pago</li>
+          <li>2️⃣ Lo agregás al carrito</li>
+          <li>3️⃣ Completás el checkout</li>
           <li>4️⃣ ¡Tu pedido en camino!</li>
         </ul>
       </div>
@@ -262,7 +255,7 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
       <div class="faq-grid">
         <div class="faq-item">
           <strong>¿Cuánto cuesta el envío?</strong>
-          <p>El costo varía según tu provincia y el peso del paquete. Consultanos por WhatsApp y te damos el precio exacto.</p>
+          <p>Varía según tu provincia y el peso del paquete. Consultanos por WhatsApp.</p>
         </div>
         <div class="faq-item">
           <strong>¿Cuándo sale mi pedido?</strong>
@@ -270,20 +263,20 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
         <div class="faq-item">
           <strong>¿Cómo hago el seguimiento?</strong>
-          <p>Una vez despachado te mandamos el número de tracking para que puedas seguir tu paquete online.</p>
+          <p>Una vez despachado te mandamos el número de tracking.</p>
         </div>
         <div class="faq-item">
           <strong>¿Hacen entrega en mano?</strong>
-          <p>Sí, dependiendo de la zona podemos coordinar entrega en mano. Consultanos.</p>
+          <p>Sí, dependiendo de la zona. Consultanos.</p>
         </div>
       </div>
     </div>
-    <div style="text-align:center; margin-top: 48px;">
+    <div style="text-align:center;margin-top:48px;">
       <a href="https://wa.me/5493704097831" class="btn-main" target="_blank">Consultar envío por WhatsApp</a>
     </div>
   </section>
 
-  <!-- ─── FOOTER ─── -->
+  <!-- FOOTER -->
   <footer>
     <div class="footer-top">
       <div class="footer-brand">
@@ -322,7 +315,6 @@ $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
   </footer>
 
-  <!-- ─── WHATSAPP FLOTANTE ─── -->
   <a href="https://wa.me/5493704097831" class="wa-btn" target="_blank">
     <span class="wa-icon">💬</span>
     <span>WhatsApp</span>
