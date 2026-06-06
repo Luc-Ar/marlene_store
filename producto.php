@@ -458,7 +458,4 @@ $relacionados = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
     </script>
 </body>
 
-
-</body>
-
 </html>
