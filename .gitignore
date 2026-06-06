@@ -1,3 +1,5 @@
 config/Database.php
 .env
 *.log
+vendor/
+.env.save
