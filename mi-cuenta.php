@@ -2,7 +2,6 @@
 session_start();
 require_once __DIR__ . '/config/Database.php';
 
-// Si no está logueado, redirigir
 if (!isset($_SESSION['cliente_id'])) {
     header('Location: login-cliente.php?redirect=mi-cuenta.php');
     exit;
@@ -30,33 +29,32 @@ $stmt = $conexion->prepare("
 $stmt->bind_param("i", $id_cliente);
 $stmt->execute();
 $pedidos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
 // Nueva dirección
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nueva_direccion'])) {
-    $calle      = trim($_POST['calle'] ?? '');
-    $altura     = (int)($_POST['altura'] ?? 0);
-    $cp         = trim($_POST['codigo_postal'] ?? '');
-    $localidad  = trim($_POST['localidad'] ?? '');
-    $desc       = trim($_POST['descripcion_adicional'] ?? '');
-    $principal  = isset($_POST['principal']) ? 1 : 0;
+    $calle     = trim($_POST['calle'] ?? '');
+    $altura    = (int)($_POST['altura'] ?? 0);
+    $cp        = trim($_POST['codigo_postal'] ?? '');
+    $localidad = trim($_POST['localidad'] ?? '');
+    $id_prov   = (int)($_POST['id_provincia'] ?? 0);
+    $desc      = trim($_POST['descripcion_adicional'] ?? '');
+    $principal = isset($_POST['principal']) ? 1 : 0;
 
-    if ($calle && $cp && $localidad) {
-        // Buscar o crear localidad
-        $stmt = $conexion->prepare("SELECT id FROM localidades WHERE nombre = ? LIMIT 1");
-        $stmt->bind_param("s", $localidad);
+    if ($calle && $localidad && $id_prov) {
+        $stmt = $conexion->prepare("SELECT id FROM localidades WHERE nombre = ? AND id_provincia = ? LIMIT 1");
+        $stmt->bind_param("si", $localidad, $id_prov);
         $stmt->execute();
         $loc = $stmt->get_result()->fetch_assoc();
         if ($loc) {
             $id_loc = $loc['id'];
         } else {
-            $stmt = $conexion->prepare("INSERT INTO localidades (nombre) VALUES (?)");
-            $stmt->bind_param("s", $localidad);
+            $stmt = $conexion->prepare("INSERT INTO localidades (nombre, id_provincia) VALUES (?, ?)");
+            $stmt->bind_param("si", $localidad, $id_prov);
             $stmt->execute();
             $id_loc = $conexion->insert_id;
         }
 
-        // Si es principal, desmarcar las otras
         if ($principal) {
-            $conexion->prepare("UPDATE direcciones SET principal = 0 WHERE id_cliente = ?")->execute() || true;
             $stmt2 = $conexion->prepare("UPDATE direcciones SET principal = 0 WHERE id_cliente = ?");
             $stmt2->bind_param("i", $id_cliente);
             $stmt2->execute();
@@ -80,7 +78,29 @@ if (isset($_GET['eliminar_direccion'])) {
     exit;
 }
 
-// Colores y labels de estado
+// Actualizar datos
+$exito_datos = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_datos'])) {
+    $nuevo_nombre   = trim($_POST['nombre'] ?? '');
+    $nuevo_apellido = trim($_POST['apellido'] ?? '');
+    $nuevo_telefono = trim($_POST['telefono'] ?? '');
+    if ($nuevo_nombre && $nuevo_apellido) {
+        $stmt = $conexion->prepare("UPDATE clientes SET nombre=?, apellido=?, telefono=? WHERE id=?");
+        $stmt->bind_param("sssi", $nuevo_nombre, $nuevo_apellido, $nuevo_telefono, $id_cliente);
+        $stmt->execute();
+        $_SESSION['cliente_nombre'] = $nuevo_nombre;
+        $cliente['nombre']   = $nuevo_nombre;
+        $cliente['apellido'] = $nuevo_apellido;
+        $cliente['telefono'] = $nuevo_telefono;
+        $exito_datos = 'Datos actualizados correctamente.';
+    }
+}
+
+// Provincias para el formulario de dirección
+$stmt = $conexion->prepare("SELECT id, nombre FROM provincias ORDER BY nombre ASC");
+$stmt->execute();
+$provincias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
 $estados = [
     'pendiente'      => ['label' => 'Pendiente',      'color' => '#F59E0B', 'bg' => '#FEF3C7'],
     'confirmado'     => ['label' => 'Confirmado',     'color' => '#3B82F6', 'bg' => '#EFF6FF'],
@@ -156,10 +176,8 @@ $estados = [
             color: #DC2626;
         }
 
-        /* Tabs */
         .cuenta-tabs {
             display: flex;
-            gap: 0;
             border-bottom: 2px solid rgba(200, 152, 154, 0.2);
             margin-bottom: 32px;
         }
@@ -197,7 +215,6 @@ $estados = [
             display: block;
         }
 
-        /* Pedidos */
         .pedidos-lista {
             display: flex;
             flex-direction: column;
@@ -226,18 +243,10 @@ $estados = [
             font-size: 0.7rem;
             font-weight: 700;
             color: var(--marron);
-            letter-spacing: 1px;
         }
 
         .pedido-fecha {
             font-size: 0.75rem;
-            color: #999;
-            margin-top: 3px;
-        }
-
-        .pedido-items {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.65rem;
             color: #999;
             margin-top: 3px;
         }
@@ -248,7 +257,6 @@ $estados = [
             font-family: 'Montserrat', sans-serif;
             font-size: 0.6rem;
             font-weight: 700;
-            letter-spacing: 1px;
             text-transform: uppercase;
         }
 
@@ -279,14 +287,6 @@ $estados = [
             margin-bottom: 12px;
         }
 
-        .sin-pedidos p:last-child {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.7rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        /* Datos personales */
         .datos-card {
             background: white;
             border: 1px solid rgba(200, 152, 154, 0.2);
@@ -321,7 +321,8 @@ $estados = [
             margin-bottom: 4px;
         }
 
-        .dato-item input {
+        .dato-item input,
+        .dato-item select {
             width: 100%;
             padding: 10px 14px;
             border: 1.5px solid rgba(200, 152, 154, 0.3);
@@ -333,7 +334,8 @@ $estados = [
             transition: border-color 0.2s;
         }
 
-        .dato-item input:focus {
+        .dato-item input:focus,
+        .dato-item select:focus {
             outline: none;
             border-color: var(--dorado);
         }
@@ -365,7 +367,6 @@ $estados = [
             border-radius: 6px;
             font-size: 0.8rem;
             margin-bottom: 16px;
-            font-family: 'Montserrat', sans-serif;
         }
 
         @media (max-width: 600px) {
@@ -386,17 +387,8 @@ $estados = [
 </head>
 
 <body>
+
     <?php include __DIR__ . '/includes/nav.php'; ?>
-    <nav>
-        <a href="index.php" class="logo-wrap">
-            <span class="logo-script">Marlene</span>
-            <span class="logo-store">STORE</span>
-        </a>
-        <ul class="nav-links">
-            <li><a href="catalogo.php">Catálogo</a></li>
-            <li><a href="logout-cliente.php" class="nav-cta">Cerrar sesión</a></li>
-        </ul>
-    </nav>
 
     <div class="cuenta-wrap">
 
@@ -408,14 +400,13 @@ $estados = [
             <a href="logout-cliente.php" class="btn-logout">Cerrar sesión</a>
         </div>
 
-        <!-- Tabs -->
         <div class="cuenta-tabs">
             <button class="tab-btn activo" onclick="mostrarTab('pedidos', this)">📦 Mis pedidos</button>
             <button class="tab-btn" onclick="mostrarTab('datos', this)">👤 Mis datos</button>
             <button class="tab-btn" onclick="mostrarTab('direcciones', this)">📍 Direcciones</button>
         </div>
 
-        <!-- Tab Pedidos -->
+        <!-- TAB PEDIDOS -->
         <div class="tab-content activo" id="tab-pedidos">
             <?php if (empty($pedidos)): ?>
                 <div class="sin-pedidos">
@@ -433,18 +424,14 @@ $estados = [
                         <div class="pedido-card">
                             <div>
                                 <div class="pedido-numero"># <?= htmlspecialchars($pedido['numero_pedido']) ?></div>
-                                <div class="pedido-fecha">
-                                    <?= date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])) ?>
-                                </div>
-                                <div class="pedido-items">
+                                <div class="pedido-fecha"><?= date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])) ?></div>
+                                <div style="font-size:0.65rem;color:#999;margin-top:3px;">
                                     <?= $pedido['cant_items'] ?> producto<?= $pedido['cant_items'] != 1 ? 's' : '' ?>
                                 </div>
                             </div>
-                            <div>
-                                <span class="pedido-estado" style="background:<?= $estado['bg'] ?>;color:<?= $estado['color'] ?>">
-                                    <?= $estado['label'] ?>
-                                </span>
-                            </div>
+                            <span class="pedido-estado" style="background:<?= $estado['bg'] ?>;color:<?= $estado['color'] ?>">
+                                <?= $estado['label'] ?>
+                            </span>
                             <div style="text-align:right;">
                                 <div class="pedido-total-label">Total</div>
                                 <div class="pedido-total">$<?= number_format($pedido['total'], 0, ',', '.') ?></div>
@@ -455,129 +442,8 @@ $estados = [
             <?php endif; ?>
         </div>
 
-        <!-- Tab Datos -->
+        <!-- TAB DATOS -->
         <div class="tab-content" id="tab-datos">
-            <?php
-            $exito_datos = '';
-            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_datos'])) {
-                $nuevo_nombre    = trim($_POST['nombre'] ?? '');
-                $nuevo_apellido  = trim($_POST['apellido'] ?? '');
-                $nuevo_telefono  = trim($_POST['telefono'] ?? '');
-                if ($nuevo_nombre && $nuevo_apellido) {
-                    $stmt = $conexion->prepare("UPDATE clientes SET nombre=?, apellido=?, telefono=? WHERE id=?");
-                    $stmt->bind_param("sssi", $nuevo_nombre, $nuevo_apellido, $nuevo_telefono, $id_cliente);
-                    $stmt->execute();
-                    $_SESSION['cliente_nombre'] = $nuevo_nombre;
-                    $cliente['nombre']   = $nuevo_nombre;
-                    $cliente['apellido'] = $nuevo_apellido;
-                    $cliente['telefono'] = $nuevo_telefono;
-                    $exito_datos = 'Datos actualizados correctamente.';
-                }
-            }
-            ?>
-            <!-- Tab Direcciones -->
-            <div class="tab-content" id="tab-direcciones">
-                <?php
-                // Traer direcciones del cliente
-                $stmt = $conexion->prepare("
-        SELECT d.*, l.nombre as localidad_nombre
-        FROM direcciones d
-        LEFT JOIN localidades l ON d.id_localidad = l.id
-        WHERE d.id_cliente = ?
-        ORDER BY d.principal DESC, d.fecha_creacion DESC
-    ");
-                $stmt->bind_param("i", $id_cliente);
-                $stmt->execute();
-                $direcciones = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-                ?>
-
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <div style="font-family:'Montserrat',sans-serif; font-size:0.65rem; color:#999; text-transform:uppercase; letter-spacing:2px;">
-                        <?= count($direcciones) ?> dirección<?= count($direcciones) != 1 ? 'es' : '' ?> guardada<?= count($direcciones) != 1 ? 's' : '' ?>
-                    </div>
-                    <button onclick="toggleFormDireccion()" class="btn-guardar" style="margin:0;">+ Nueva dirección</button>
-                </div>
-
-                <!-- Formulario nueva dirección -->
-                <div id="form-direccion" style="display:none;">
-                    <div class="datos-card" style="margin-bottom:20px;">
-                        <div class="datos-titulo">📍 Nueva dirección</div>
-                        <form method="POST">
-                            <input type="hidden" name="nueva_direccion" value="1">
-                            <div class="datos-grid">
-                                <div class="dato-item">
-                                    <label>Calle *</label>
-                                    <input type="text" name="calle" required placeholder="Av. San Martín">
-                                </div>
-                                <div class="dato-item">
-                                    <label>Altura</label>
-                                    <input type="number" name="altura" placeholder="1234">
-                                </div>
-                                <div class="dato-item">
-                                    <label>Código Postal *</label>
-                                    <input type="text" name="codigo_postal" id="cp-nueva" required placeholder="3700">
-                                </div>
-                                <div class="dato-item">
-                                    <label>Localidad *</label>
-                                    <input type="text" name="localidad" id="localidad-nueva" required placeholder="Posadas">
-                                </div>
-                            </div>
-                            <div class="dato-item" style="margin-top:12px;">
-                                <label>Descripción adicional</label>
-                                <input type="text" name="descripcion_adicional" placeholder="Piso, depto, referencias...">
-                            </div>
-                            <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Montserrat',sans-serif;font-size:0.65rem;color:var(--marron);cursor:pointer;">
-                                <input type="checkbox" name="principal" value="1"> Marcar como dirección principal
-                            </label>
-                            <div style="display:flex;gap:12px;margin-top:16px;">
-                                <button type="submit" class="btn-guardar" style="margin:0;">Guardar dirección</button>
-                                <button type="button" onclick="toggleFormDireccion()" style="padding:12px 20px;background:none;border:1px solid rgba(200,152,154,0.4);border-radius:6px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:0.62rem;color:#999;">Cancelar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Lista de direcciones -->
-                <?php if (empty($direcciones)): ?>
-                    <div class="sin-pedidos">
-                        <p>📍</p>
-                        <p>No tenés direcciones guardadas</p>
-                    </div>
-                <?php else: ?>
-                    <div style="display:flex;flex-direction:column;gap:12px;">
-                        <?php foreach ($direcciones as $dir): ?>
-                            <div class="datos-card" style="padding:20px 24px;">
-                                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-                                    <div>
-                                        <?php if ($dir['principal']): ?>
-                                            <span style="background:#FEF3C7;color:#92400E;font-family:'Montserrat',sans-serif;font-size:0.55rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:8px;">
-                                                ⭐ Principal
-                                            </span>
-                                        <?php endif; ?>
-                                        <p style="font-family:'Montserrat',sans-serif;font-weight:600;color:var(--marron);font-size:0.9rem;margin-bottom:4px;">
-                                            <?= htmlspecialchars($dir['calle']) ?> <?= $dir['altura'] ? htmlspecialchars($dir['altura']) : '' ?>
-                                        </p>
-                                        <p style="font-size:0.8rem;color:#999;">
-                                            <?= htmlspecialchars($dir['localidad_nombre'] ?? '') ?>
-                                            <?= $dir['codigo_postal'] ? '(CP: ' . htmlspecialchars($dir['codigo_postal']) . ')' : '' ?>
-                                        </p>
-                                        <?php if ($dir['descripcion_adicional']): ?>
-                                            <p style="font-size:0.75rem;color:#bbb;margin-top:4px;">
-                                                <?= htmlspecialchars($dir['descripcion_adicional']) ?>
-                                            </p>
-                                        <?php endif; ?>
-                                    </div>
-                                    <a href="?eliminar_direccion=<?= $dir['id'] ?>"
-                                        onclick="return confirm('¿Eliminar esta dirección?')"
-                                        style="color:#DC2626;font-size:0.7rem;font-family:'Montserrat',sans-serif;text-decoration:none;white-space:nowrap;">
-                                        🗑 Eliminar
-                                    </a>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
             <div class="datos-card">
                 <div class="datos-titulo">📋 Datos personales</div>
                 <?php if ($exito_datos): ?>
@@ -608,6 +474,118 @@ $estados = [
             </div>
         </div>
 
+        <!-- TAB DIRECCIONES -->
+        <div class="tab-content" id="tab-direcciones">
+            <?php
+            $stmt = $conexion->prepare("
+            SELECT d.*, l.nombre as localidad_nombre
+            FROM direcciones d
+            LEFT JOIN localidades l ON d.id_localidad = l.id
+            WHERE d.id_cliente = ?
+            ORDER BY d.principal DESC, d.fecha_creacion DESC
+        ");
+            $stmt->bind_param("i", $id_cliente);
+            $stmt->execute();
+            $direcciones = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            ?>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <span style="font-family:'Montserrat',sans-serif;font-size:0.65rem;color:#999;text-transform:uppercase;letter-spacing:2px;">
+                    <?= count($direcciones) ?> dirección<?= count($direcciones) != 1 ? 'es' : '' ?> guardada<?= count($direcciones) != 1 ? 's' : '' ?>
+                </span>
+                <button onclick="toggleFormDireccion()" class="btn-guardar" style="margin:0;">+ Nueva dirección</button>
+            </div>
+
+            <!-- Formulario nueva dirección -->
+            <div id="form-direccion" style="display:none;margin-bottom:20px;">
+                <div class="datos-card">
+                    <div class="datos-titulo">📍 Nueva dirección</div>
+                    <form method="POST">
+                        <input type="hidden" name="nueva_direccion" value="1">
+                        <div class="datos-grid">
+                            <div class="dato-item">
+                                <label>Calle *</label>
+                                <input type="text" name="calle" required placeholder="Av. San Martín">
+                            </div>
+                            <div class="dato-item">
+                                <label>Altura</label>
+                                <input type="number" name="altura" placeholder="1234">
+                            </div>
+                            <div class="dato-item">
+                                <label>Provincia *</label>
+                                <select name="id_provincia" id="prov-nueva" required onchange="cargarLocMiCuenta()">
+                                    <option value="">— Seleccioná —</option>
+                                    <?php foreach ($provincias as $prov): ?>
+                                        <option value="<?= $prov['id'] ?>" data-nombre="<?= htmlspecialchars($prov['nombre']) ?>">
+                                            <?= htmlspecialchars($prov['nombre']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="dato-item">
+                                <label>Localidad *</label>
+                                <select name="localidad" id="loc-nueva" required disabled>
+                                    <option value="">— Primero elegí provincia —</option>
+                                </select>
+                            </div>
+                            <div class="dato-item">
+                                <label>Código Postal</label>
+                                <input type="text" name="codigo_postal" id="cp-nueva" placeholder="Se completa automático">
+                            </div>
+                            <div class="dato-item">
+                                <label>Descripción adicional</label>
+                                <input type="text" name="descripcion_adicional" placeholder="Piso, depto...">
+                            </div>
+                        </div>
+                        <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Montserrat',sans-serif;font-size:0.65rem;color:var(--marron);cursor:pointer;">
+                            <input type="checkbox" name="principal" value="1"> Marcar como dirección principal
+                        </label>
+                        <div style="display:flex;gap:12px;margin-top:16px;">
+                            <button type="submit" class="btn-guardar" style="margin:0;">Guardar</button>
+                            <button type="button" onclick="toggleFormDireccion()" style="padding:12px 20px;background:none;border:1px solid rgba(200,152,154,0.4);border-radius:6px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:0.62rem;color:#999;">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de direcciones -->
+            <?php if (empty($direcciones)): ?>
+                <div class="sin-pedidos">
+                    <p>📍</p>
+                    <p>No tenés direcciones guardadas</p>
+                </div>
+            <?php else: ?>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <?php foreach ($direcciones as $dir): ?>
+                        <div class="datos-card" style="padding:20px 24px;">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                                <div>
+                                    <?php if ($dir['principal']): ?>
+                                        <span style="background:#FEF3C7;color:#92400E;font-family:'Montserrat',sans-serif;font-size:0.55rem;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:8px;">⭐ Principal</span>
+                                    <?php endif; ?>
+                                    <p style="font-family:'Montserrat',sans-serif;font-weight:600;color:var(--marron);font-size:0.9rem;margin-bottom:4px;">
+                                        <?= htmlspecialchars($dir['calle']) ?> <?= $dir['altura'] ?: '' ?>
+                                    </p>
+                                    <p style="font-size:0.8rem;color:#999;">
+                                        <?= htmlspecialchars($dir['localidad_nombre'] ?? '') ?>
+                                        <?= $dir['codigo_postal'] ? '(CP: ' . htmlspecialchars($dir['codigo_postal']) . ')' : '' ?>
+                                    </p>
+                                    <?php if ($dir['descripcion_adicional']): ?>
+                                        <p style="font-size:0.75rem;color:#bbb;margin-top:4px;"><?= htmlspecialchars($dir['descripcion_adicional']) ?></p>
+                                    <?php endif; ?>
+                                </div>
+                                <a href="?eliminar_direccion=<?= $dir['id'] ?>"
+                                    onclick="return confirm('¿Eliminar esta dirección?')"
+                                    style="color:#DC2626;font-size:0.7rem;font-family:'Montserrat',sans-serif;text-decoration:none;white-space:nowrap;">
+                                    🗑 Eliminar
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
     </div>
 
     <script>
@@ -617,6 +595,7 @@ $estados = [
             document.getElementById('tab-' + tab).classList.add('activo');
             btn.classList.add('activo');
         }
+
         // Abrir tab desde URL
         const urlTab = new URLSearchParams(window.location.search).get('tab');
         if (urlTab) {
@@ -624,30 +603,50 @@ $estados = [
             if (btn) btn.click();
         }
 
-        // Toggle form dirección
         function toggleFormDireccion() {
             const form = document.getElementById('form-direccion');
             form.style.display = form.style.display === 'none' ? 'block' : 'none';
         }
 
-        // Autocompletar CP
-        const cpInput = document.getElementById('cp-nueva');
-        if (cpInput) {
-            cpInput.addEventListener('blur', function() {
-                const cp = this.value.trim();
-                if (cp.length < 4) return;
-                fetch(`https://api.zippopotam.us/ar/${cp}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.places && data.places[0]) {
-                            document.getElementById('localidad-nueva').value = data.places[0]['place name'];
-                        }
-                    })
-                    .catch(() => {});
-            });
+        async function cargarLocMiCuenta() {
+            const selectProv = document.getElementById('prov-nueva');
+            const selectLoc = document.getElementById('loc-nueva');
+            const nombreProv = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
+            if (!nombreProv) return;
+            selectLoc.disabled = true;
+            selectLoc.innerHTML = '<option value="">Cargando...</option>';
+            try {
+                const nombre = nombreProv === 'Ciudad de Buenos Aires' ? 'Ciudad Autónoma de Buenos Aires' : nombreProv;
+                const res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(nombre)}&max=500&orden=nombre&campos=nombre`);
+                const data = await res.json();
+                if (data.localidades?.length > 0) {
+                    const nombres = [...new Set(data.localidades.map(l => l.nombre))].sort();
+                    selectLoc.innerHTML = '<option value="">— Seleccioná —</option>';
+                    nombres.forEach(n => {
+                        const opt = document.createElement('option');
+                        opt.value = n;
+                        opt.textContent = n;
+                        selectLoc.appendChild(opt);
+                    });
+                    selectLoc.disabled = false;
+                    selectLoc.addEventListener('change', async () => {
+                        const cpInput = document.getElementById('cp-nueva');
+                        try {
+                            const r = await fetch(`https://api.zippopotam.us/ar/${encodeURIComponent(selectLoc.value)}`);
+                            if (r.ok) {
+                                const d = await r.json();
+                                if (d['post code']) cpInput.value = d['post code'];
+                            }
+                        } catch (e) {}
+                    });
+                }
+            } catch (e) {
+                selectLoc.innerHTML = '<option value="">Error — escribí la localidad</option>';
+                const parent = selectLoc.closest('.dato-item');
+                parent.innerHTML = '<label>Localidad *</label><input type="text" name="localidad" required placeholder="Escribí tu localidad" style="width:100%;padding:10px 14px;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;font-family:\'Montserrat\',sans-serif;">';
+            }
         }
     </script>
-
 </body>
 
 </html>
