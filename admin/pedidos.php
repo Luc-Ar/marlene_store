@@ -2,9 +2,9 @@
 session_start();
 // Si no tenés el login aún, podés comentar estas 3 líneas para probar
 if (!isset($_SESSION['usuario_id'])) {
-  // header('Location: login.php'); exit; 
+  header('Location: login.php');
+  exit;
 }
-
 require_once '../config/Database.php';
 require_once '../models/PedidoRepository.php';
 
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_pedido'])) {
 
   $pedidoRepo->actualizarEstado($id_pedido, $nuevo_estado);
 
-  // Enviar email al cliente
+  // Email al cliente
   require_once __DIR__ . '/../includes/emails.php';
   $stmt = $db->prepare("
         SELECT p.*, c.nombre as cliente_nombre, c.email as cliente_email
@@ -40,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_pedido'])) {
   $stmt->bind_param("i", $id_pedido);
   $stmt->execute();
   $data = $stmt->get_result()->fetch_assoc();
-
   if ($data && !empty($data['cliente_email'])) {
     emailCambioEstado(
       $data,
@@ -290,6 +289,7 @@ $pedidos = $pedidoRepo->listarPedidos($filtros);
       <a href="productos.php" class="nav-item">🎒 Productos</a>
       <a href="pedidos.php" class="nav-item activo">📦 Pedidos</a>
       <a href="clientes.php" class="nav-item">👥 Clientes</a>
+      <a href="../index.php" class="nav-item" target="_blank">🌐 Ver tienda</a>
     </nav>
   </div>
 

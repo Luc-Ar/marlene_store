@@ -5,7 +5,8 @@ if (!isset($_SESSION['usuario_id'])) {
   exit;
 }
 require_once __DIR__ . '/../config/Database.php';
-
+ini_set('display_errors', 0);
+error_reporting(0);
 try {
   $conexion = Database::getConexion();
 
