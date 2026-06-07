@@ -7,93 +7,68 @@ if (!isset($_SESSION['usuario_id'])) {
 require_once '../config/Database.php';
 $conexion = Database::getConexion();
 
-// 1. Cargar categorías para el select
-
-
 $res_cats = $conexion->query("SELECT id, nombre FROM categorias WHERE activo = 1 ORDER BY nombre ASC");
-$mensaje = '';
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-}
-?>
-<?php
-// 2. Procesar formulario al recibir POST
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guardar'])) {
-  $nombre = trim($_POST['nombre']);
-  $descripcion_corta = trim($_POST['descripcion_corta']);
-  $descripcion_larga = trim($_POST['descripcion_larga']);
-  $precio = $_POST['precio'];
-  $precio_oferta = !empty($_POST['precio_oferta']) ? $_POST['precio_oferta'] : null;
-  $categoria = !empty($_POST['categoria']) ? $_POST['categoria'] : null;
-  $subcategoria = trim($_POST['subcategoria']);
-  $peso_gramos = !empty($_POST['peso_gramos']) ? $_POST['peso_gramos'] : 0;
-  $stock = !empty($_POST['stock']) ? $_POST['stock'] : 0;
-  $activo = isset($_POST['activo']) ? 1 : 0;
-  $destacado = isset($_POST['destacado']) ? 1 : 0;
-  $imagen_principal = '';
+  $nombre            = trim($_POST['nombre']);
+  $descripcion_corta = trim($_POST['descripcion_corta'] ?? '');
+  $descripcion_larga = trim($_POST['descripcion_larga'] ?? '');
+  $precio            = (float)$_POST['precio'];
+  $precio_oferta     = !empty($_POST['precio_oferta']) ? (float)$_POST['precio_oferta'] : null;
+  $categoria         = !empty($_POST['categoria']) ? (int)$_POST['categoria'] : null;
+  $subcategoria      = trim($_POST['subcategoria'] ?? '');
+  $peso_gramos       = (int)($_POST['peso_gramos'] ?? 0);
+  $stock             = (int)($_POST['stock'] ?? 0);
+  $activo            = isset($_POST['activo']) ? 1 : 0;
+  $destacado         = isset($_POST['destacado']) ? 1 : 0;
+  $imagen_principal  = '';
 
-  // --- LÓGICA DE SKU AUTOMÁTICO ---
+  // SKU automático
   $sku = !empty($_POST['sku']) ? trim($_POST['sku']) : '';
-
   if (empty($sku)) {
-    $id_cat = (int)$categoria;
     $prefijo_cat = 'GEN';
-
-    if ($id_cat > 0) {
-      $res_cat = $conexion->query("SELECT nombre FROM categorias WHERE id = $id_cat");
+    if ($categoria) {
+      $res_cat = $conexion->query("SELECT nombre FROM categorias WHERE id = $categoria");
       if ($cat_data = $res_cat->fetch_assoc()) {
-        $nombre_limpio = preg_replace('/[^A-Za-z0-9]/', '', $cat_data['nombre']);
-        $prefijo_cat = strtoupper(substr($nombre_limpio, 0, 3));
+        $prefijo_cat = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $cat_data['nombre']), 0, 3));
       }
     }
-
-    $sub_limpia = preg_replace('/[^A-Za-z0-9]/', '', $subcategoria);
-    $prefijo_sub = !empty($sub_limpia) ? strtoupper(substr($sub_limpia, 0, 3)) : 'GEN';
-
-    $res_ultimo = $conexion->query("SELECT id FROM productos ORDER BY id DESC LIMIT 1");
-    $ultimo_id = ($res_ultimo && $res_ultimo->num_rows > 0) ? $res_ultimo->fetch_assoc()['id'] : 0;
-
+    $prefijo_sub = !empty($subcategoria) ? strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $subcategoria), 0, 3)) : 'GEN';
+    $ultimo = $conexion->query("SELECT id FROM productos ORDER BY id DESC LIMIT 1");
+    $ultimo_id = ($ultimo && $ultimo->num_rows > 0) ? $ultimo->fetch_assoc()['id'] : 0;
     $sku = $prefijo_cat . '-' . $prefijo_sub . '-' . str_pad($ultimo_id + 1, 3, '0', STR_PAD_LEFT);
   }
 
-  // --- VALIDACIÓN DE DUPLICADOS ---
-  $check_sku = $conexion->prepare("SELECT id FROM productos WHERE sku = ?");
-  $check_sku->bind_param("s", $sku);
-  $check_sku->execute();
-  if ($check_sku->get_result()->num_rows > 0) {
+  // Verificar SKU duplicado
+  $check = $conexion->prepare("SELECT id FROM productos WHERE sku = ?");
+  $check->bind_param("s", $sku);
+  $check->execute();
+  if ($check->get_result()->num_rows > 0) {
     $error = "El SKU ($sku) ya existe.";
   } else {
-
-    // --- PROCESAMIENTO DE IMAGEN ---
+    // Subir imagen
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-      $nombre_temp = $_FILES['imagen']['tmp_name'];
-      $nombre_orig = $_FILES['imagen']['name'];
-      $ext = strtolower(pathinfo($nombre_orig, PATHINFO_EXTENSION));
+      $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
       $nombre_final = 'prod_' . time() . '.' . $ext;
-      $ruta_destino = '../assets/imagenes/' . $nombre_final;
-
-      if (move_uploaded_file($nombre_temp, $ruta_destino)) {
+      if (move_uploaded_file($_FILES['imagen']['tmp_name'], '../assets/imagenes/' . $nombre_final)) {
         $imagen_principal = 'assets/imagenes/' . $nombre_final;
       } else {
-        $error = "Error al mover la imagen. Revisá permisos en Kali.";
+        $error = "Error al subir la imagen.";
       }
     }
 
     if (empty($error)) {
-      // --- INSERT FINAL ---
-      $sql = "INSERT INTO productos (sku, nombre, descripcion_corta, descripcion_larga, precio, precio_oferta, categoria, subcategoria, peso_gramos, stock, imagen_principal, activo, destacado)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-      $stmt = $conexion->prepare($sql);
-      if ($stmt) {
-        $stmt->bind_param('ssssddssiisii', $sku, $nombre, $descripcion_corta, $descripcion_larga, $precio, $precio_oferta, $categoria, $subcategoria, $peso_gramos, $stock, $imagen_principal, $activo, $destacado);
-
-        if ($stmt->execute()) {
-          header('Location: productos.php?mensaje=agregado');
-          exit;
-        } else {
-          $error = 'Error en la base de datos: ' . $stmt->error;
-        }
+      $stmt = $conexion->prepare("
+                INSERT INTO productos (sku, nombre, descripcion_corta, descripcion_larga, precio, precio_oferta, categoria, subcategoria, peso_gramos, stock, imagen_principal, activo, destacado)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+      $stmt->bind_param('ssssddssiisii', $sku, $nombre, $descripcion_corta, $descripcion_larga, $precio, $precio_oferta, $categoria, $subcategoria, $peso_gramos, $stock, $imagen_principal, $activo, $destacado);
+      if ($stmt->execute()) {
+        header('Location: productos.php?mensaje=agregado');
+        exit;
+      } else {
+        $error = 'Error en la base de datos: ' . $stmt->error;
       }
     }
   }
@@ -104,8 +79,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nuevo Producto — Marlene Store</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;600&family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -118,89 +94,254 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
       background: #F2EBE0;
       color: #3A2526;
       display: flex;
+      min-height: 100vh;
     }
 
     .sidebar {
-      width: 240px;
+      width: 260px;
       background: #5C3D3E;
       min-height: 100vh;
       position: fixed;
-      color: white;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-logo {
+      padding: 28px 20px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .logo-script {
+      font-family: 'Great Vibes', cursive;
+      font-size: 2.6rem;
+      color: #FAF6F1;
+      display: block;
+    }
+
+    .logo-store {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+      font-size: 0.65rem;
+      letter-spacing: 0.8rem;
+      color: #C9A96E;
+      text-transform: uppercase;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 20px 0;
+    }
+
+    .nav-section {
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.3);
+      padding: 16px 25px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 25px;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      font-size: 0.82rem;
+      transition: 0.2s;
+      border-left: 4px solid transparent;
+    }
+
+    .nav-item:hover,
+    .nav-item.activo {
+      background: rgba(255, 255, 255, 0.1);
+      color: #FAF6F1;
+      border-left-color: #C9A96E;
+    }
+
+    .sidebar-footer {
       padding: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-logout-sidebar {
+      display: block;
+      text-align: center;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: 0.2s;
+    }
+
+    .btn-logout-sidebar:hover {
+      background: rgba(192, 57, 43, 0.4);
+      color: #fff;
     }
 
     .main {
-      margin-left: 240px;
+      margin-left: 260px;
       flex: 1;
       padding: 40px;
     }
 
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .page-header h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      color: #5C3D3E;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+
     .form-card {
-      background: #fff;
-      padding: 25px;
-      border-radius: 4px;
+      background: white;
+      border-radius: 8px;
+      padding: 28px;
       margin-bottom: 20px;
-      border: 1px solid #ddd;
+      border: 1px solid rgba(200, 152, 154, 0.2);
+    }
+
+    .form-card h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem;
+      color: #5C3D3E;
+      margin-bottom: 20px;
     }
 
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 16px;
     }
 
-    label {
+    .form-group label {
       display: block;
+      font-size: 0.6rem;
       font-weight: 700;
-      font-size: 0.7rem;
       text-transform: uppercase;
-      margin-bottom: 5px;
-      color: #9E5F62;
+      color: #999;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
     }
 
-    input,
-    select,
-    textarea {
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
       width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 2px;
+      padding: 10px 14px;
+      border: 1.5px solid rgba(200, 152, 154, 0.3);
+      border-radius: 6px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.85rem;
+      color: #3A2526;
+      background: #FDFAF8;
+      transition: border-color 0.2s;
     }
 
-    .btn-guardar {
-      background: #5C3D3E;
-      color: white;
-      padding: 15px;
-      width: 100%;
-      border: none;
-      cursor: pointer;
-      font-weight: 700;
-      letter-spacing: 2px;
-      margin-top: 10px;
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #C9A96E;
     }
 
-    .error-msg {
-      background: #f8d7da;
-      color: #721c24;
-      padding: 15px;
-      margin-bottom: 20px;
-      border: 1px solid #f5c6cb;
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
     }
 
     .img-preview {
       width: 100%;
-      height: 150px;
-      background: #eee;
+      height: 180px;
+      background: #F2EBE0;
+      border: 2px dashed rgba(200, 152, 154, 0.4);
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 10px;
       overflow: hidden;
-      border: 1px dashed #ccc;
+      margin-bottom: 12px;
+      font-size: 2rem;
     }
 
     .img-preview img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+    }
+
+    .btn-guardar {
+      width: 100%;
+      background: #5C3D3E;
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn-guardar:hover {
+      background: #C9A96E;
+    }
+
+    .btn-cancelar {
+      display: block;
+      text-align: center;
+      margin-top: 10px;
+      padding: 12px;
+      background: #F2EBE0;
+      color: #5C3D3E;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+
+    .btn-cancelar:hover {
+      background: #e5ddd1;
+    }
+
+    .error-msg {
+      background: #FEE2E2;
+      color: #991B1B;
+      padding: 14px 18px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+    }
+
+    .check-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #5C3D3E;
+      cursor: pointer;
+      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -208,32 +349,53 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 <body>
 
   <div class="sidebar">
-    <h2>Marlene Store</h2>
-    <p style="font-size: 0.6rem; opacity: 0.5;">ADMIN PANEL</p><br>
-    <a href="productos.php" style="color: white; text-decoration: none; display: block; padding: 10px 0;">← Volver a Productos</a>
+    <div class="sidebar-logo">
+      <span class="logo-script">Marlene</span>
+      <span class="logo-store">Store</span>
+    </div>
+    <nav class="sidebar-nav">
+      <p class="nav-section">Principal</p>
+      <a href="index.php" class="nav-item">📊 Dashboard</a>
+      <p class="nav-section">Catálogo</p>
+      <a href="productos.php" class="nav-item activo">🎒 Productos</a>
+      <a href="categorias.php" class="nav-item">📁 Categorías</a>
+      <p class="nav-section">Ventas</p>
+      <a href="pedidos.php" class="nav-item">📦 Pedidos</a>
+      <a href="clientes.php" class="nav-item">👥 Clientes</a>
+      <p class="nav-section">Tienda</p>
+      <a href="../index.php" class="nav-item" target="_blank">🌐 Ver tienda</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="logout.php" class="btn-logout-sidebar">🚪 Cerrar sesión</a>
+    </div>
   </div>
 
   <div class="main">
-    <h2>Nuevo Producto</h2><br>
+    <div class="page-header">
+      <div>
+        <h2>Nuevo Producto</h2>
+        <p style="font-size:0.8rem;color:#999;margin-top:4px;">Completá los datos para agregar un producto al catálogo</p>
+      </div>
+      <a href="productos.php" style="color:#999;text-decoration:none;font-size:0.8rem;">← Volver</a>
+    </div>
 
     <?php if ($error): ?>
-      <div class="error-msg">❌ <?= $error ?></div>
+      <div class="error-msg">❌ <?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
     <form method="POST" enctype="multipart/form-data">
-      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-
+      <div class="form-grid">
         <div>
           <div class="form-card">
-            <h3>Información General</h3><br>
+            <h3>Información general</h3>
             <div class="form-group">
               <label>Nombre del producto *</label>
-              <input type="text" name="nombre" required>
+              <input type="text" name="nombre" required placeholder="Ej: Mochila Escolar Azul">
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-row">
               <div class="form-group">
-                <label>SKU (Automático)</label>
-                <input type="text" name="sku" readonly placeholder="Se generará solo" style="background: #f9f9f9;">
+                <label>SKU (automático si se deja vacío)</label>
+                <input type="text" name="sku" placeholder="Se generará solo">
               </div>
               <div class="form-group">
                 <label>Subcategoría</label>
@@ -242,30 +404,30 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             </div>
             <div class="form-group">
               <label>Descripción corta</label>
-              <input type="text" name="descripcion_corta">
+              <input type="text" name="descripcion_corta" placeholder="Resumen breve del producto">
             </div>
             <div class="form-group">
               <label>Descripción larga</label>
-              <textarea name="descripcion_larga" rows="4"></textarea>
+              <textarea name="descripcion_larga" rows="4" placeholder="Descripción detallada..."></textarea>
             </div>
           </div>
 
           <div class="form-card">
-            <h3>Precios, Stock y Peso</h3><br>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <h3>Precios, stock y peso</h3>
+            <div class="form-row">
               <div class="form-group">
                 <label>Precio *</label>
-                <input type="number" name="precio" step="0.01" required>
+                <input type="number" name="precio" step="0.01" required placeholder="0.00">
               </div>
               <div class="form-group">
-                <label>Precio Oferta</label>
-                <input type="number" name="precio_oferta" step="0.01">
+                <label>Precio oferta</label>
+                <input type="number" name="precio_oferta" step="0.01" placeholder="Opcional">
               </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-row">
               <div class="form-group">
-                <label>Stock Inicial *</label>
-                <input type="number" name="stock" value="0" min="0" required>
+                <label>Stock inicial</label>
+                <input type="number" name="stock" value="0" min="0">
               </div>
               <div class="form-group">
                 <label>Peso (gramos)</label>
@@ -277,59 +439,50 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         <div>
           <div class="form-card">
-            <label>Imagen del Producto</label>
-            <div class="img-preview" id="preview"><span>🖼️</span></div>
-            <input type="file" name="imagen" accept="image/*" onchange="previewImg(this)">
+            <h3>Imagen</h3>
+            <div class="img-preview" id="preview">🖼️</div>
+            <div class="form-group">
+              <label>Seleccionar imagen</label>
+              <input type="file" name="imagen" accept="image/*" onchange="previewImg(this)">
+            </div>
           </div>
 
           <div class="form-card">
             <h3>Categoría</h3>
             <div class="form-group">
-              <label>Seleccionar Categoría *</label>
+              <label>Categoría *</label>
               <select name="categoria" required>
-                <option value="">— Seleccione una categoría —</option>
-                <?php
-                if ($res_cats && $res_cats->num_rows > 0):
-                  $res_cats->data_seek(0);
-                  while ($cat = $res_cats->fetch_assoc()):
-                ?>
-                    <option value="<?= $cat['id'] ?>">
-                      <?= htmlspecialchars($cat['nombre']) ?>
-                    </option>
-                <?php
-                  endwhile;
-                endif;
-                ?>
+                <option value="">— Seleccioná —</option>
+                <?php while ($cat = $res_cats->fetch_assoc()): ?>
+                  <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['nombre']) ?></option>
+                <?php endwhile; ?>
               </select>
             </div>
           </div>
 
           <div class="form-card">
-            <div class="form-group">
-              <label><input type="checkbox" name="activo" checked> Visible en tienda</label>
-            </div>
-            <div class="form-group">
-              <label><input type="checkbox" name="destacado"> Producto destacado</label>
-            </div>
+            <h3>Opciones</h3>
+            <label class="check-label">
+              <input type="checkbox" name="activo" checked> Visible en tienda
+            </label>
+            <label class="check-label">
+              <input type="checkbox" name="destacado"> Producto destacado
+            </label>
             <button type="submit" name="guardar" class="btn-guardar">GUARDAR PRODUCTO</button>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-              <a href="productos.php" style="flex: 1; background: #eee; color: #333; text-decoration: none; padding: 15px; text-align: center; font-weight: 700; font-size: 0.7rem; border-radius: 2px;">CANCELAR</a>
-
-            </div>
+            <a href="productos.php" class="btn-cancelar">CANCELAR</a>
           </div>
         </div>
       </div>
-
     </form>
   </div>
 
   <script>
     function previewImg(input) {
       if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
+        const reader = new FileReader();
+        reader.onload = e => {
           document.getElementById('preview').innerHTML = '<img src="' + e.target.result + '">';
-        }
+        };
         reader.readAsDataURL(input.files[0]);
       }
     }
