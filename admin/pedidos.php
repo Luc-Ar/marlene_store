@@ -464,7 +464,9 @@ $pedidos = $pedidoRepo->listarPedidos($filtros);
       <a href="pedidos.php" class="nav-item activo">📦 Pedidos</a>
       <a href="clientes.php" class="nav-item">👥 Clientes</a>
       <p class="nav-section">Tienda</p>
-      <a href="../index.php" class="nav-item" target="_blank">🌐 Ver tienda</a>
+      <a href="../index.php" class="nav-item" target="_blank" rel="noopener noreferrer">
+        🌐 Ver tienda
+      </a>
     </nav>
     <div class="sidebar-footer">
       <a href="logout.php" class="btn-logout-sidebar">🚪 Cerrar sesión</a>
