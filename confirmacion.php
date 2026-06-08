@@ -10,9 +10,9 @@ if (!$numero_pedido) {
 }
 
 $conexion = Database::getConexion();
-$pedido = null;
-$cliente = null;
-$items = [];
+$pedido   = null;
+$cliente  = null;
+$items    = [];
 
 $stmt = $conexion->prepare("SELECT * FROM pedidos WHERE numero_pedido = ? LIMIT 1");
 $stmt->bind_param("s", $numero_pedido);
@@ -30,7 +30,6 @@ if ($pedido) {
     $stmt3->execute();
     $cliente = $stmt3->get_result()->fetch_assoc();
 
-    // Enviar email solo una vez
     if ($cliente && !isset($_SESSION['email_enviado_' . $numero_pedido])) {
         emailConfirmacionPedido($pedido, $items, $cliente);
         $_SESSION['email_enviado_' . $numero_pedido] = true;
@@ -47,6 +46,10 @@ if ($pedido) {
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/styles.css">
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         .confirm-wrap {
             max-width: 640px;
             margin: 140px auto 60px;
@@ -96,7 +99,6 @@ if ($pedido) {
             display: inline-block;
         }
 
-        /* Resumen del pedido */
         .confirm-resumen {
             background: white;
             border: 1px solid rgba(200, 152, 154, 0.2);
@@ -145,7 +147,6 @@ if ($pedido) {
             padding: 14px 28px;
             background: var(--marron);
             color: var(--crema);
-            border: none;
             border-radius: 4px;
             font-family: 'Montserrat', sans-serif;
             font-size: 0.7rem;
@@ -164,7 +165,6 @@ if ($pedido) {
             padding: 14px 28px;
             background: #25D366;
             color: white;
-            border: none;
             border-radius: 4px;
             font-family: 'Montserrat', sans-serif;
             font-size: 0.7rem;
@@ -195,7 +195,7 @@ if ($pedido) {
 
         <?php if ($cliente): ?>
             <div class="confirm-email-notice">
-                📧 Te enviamos un email de confirmación a <strong><?= htmlspecialchars($cliente['email']) ?></strong>
+                📧 Te enviamos un email a <strong><?= htmlspecialchars($cliente['email']) ?></strong>
             </div>
         <?php endif; ?>
 
@@ -219,10 +219,8 @@ if ($pedido) {
 
         <div class="confirm-btns">
             <a href="catalogo.php" class="btn-seguir">Seguir comprando</a>
-            <a href="https://wa.me/5493704097831?text=Hola!%20Hice%20el%20pedido%20<?= urlencode($numero_pedido) ?>%20y%20quería%20consultar%20sobre%20el%20estado."
-                class="btn-wsp-confirm" target="_blank">
-                💬 Consultar por WhatsApp
-            </a>
+            <a href="https://wa.me/5493704097831?text=Hola!%20Hice%20el%20pedido%20<?= urlencode($numero_pedido) ?>%20y%20quería%20consultar."
+                class="btn-wsp-confirm" target="_blank">💬 Consultar por WhatsApp</a>
         </div>
     </div>
 

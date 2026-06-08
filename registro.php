@@ -49,11 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $conexion->prepare("INSERT INTO clientes (nombre, apellido, email, password, telefono) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param("sssss", $nombre, $apellido, $email, $hash, $telefono);
+
             $stmt->execute();
             $id = $conexion->insert_id;
             // Email de bienvenida
             require_once __DIR__ . '/includes/emails.php';
             $resultado = emailBienvenida(['nombre' => $nombre, 'email' => $email]);
+            
             error_log("Email bienvenida resultado: " . ($resultado ? 'OK' : 'FALLÓ'));
             $_SESSION['cliente_id']     = $id;
             $_SESSION['cliente_nombre'] = $nombre;
