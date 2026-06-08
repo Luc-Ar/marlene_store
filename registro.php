@@ -54,9 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $conexion->insert_id;
             // Email de bienvenida
             require_once __DIR__ . '/includes/emails.php';
-            $resultado = emailBienvenida(['nombre' => $nombre, 'email' => $email]);
-            
-            error_log("Email bienvenida resultado: " . ($resultado ? 'OK' : 'FALLÓ'));
+            emailBienvenida(['nombre' => $nombre, 'email' => $email]);
             $_SESSION['cliente_id']     = $id;
             $_SESSION['cliente_nombre'] = $nombre;
             $_SESSION['cliente_email']  = $email;
