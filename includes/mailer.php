@@ -7,7 +7,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 function getMailCredentials(): array
 {
-    $envFile = '/var/www/html/marlene-store/.env';
+    $envFile = __DIR__ . '/../.env';
     if (!file_exists($envFile)) return ['user' => '', 'pass' => ''];
 
     $lineas = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);

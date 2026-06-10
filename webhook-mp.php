@@ -7,9 +7,9 @@ use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Client\Payment\PaymentClient;
 
 // Cargar credenciales
-$envFile = '/var/www/html/marlene-store/.env';
+$envFile = __DIR__ . '/../.env';
 $env = [];
-foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $linea) {
+foreach (file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $linea) {
     if (strpos($linea, '=') === false) continue;
     [$key, $val] = explode('=', $linea, 2);
     $env[trim($key)] = trim($val, " \t\n\r\0\x0B\"'");

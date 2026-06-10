@@ -1,4 +1,0 @@
-[31-Mar-2026 22:55:12 UTC] PHP Fatal error:  Uncaught Error: Class "Database" not found in /var/www/html/marlene-store/test_auto.php:7
-Stack trace:
-#0 {main}
-  thrown in /var/www/html/marlene-store/test_auto.php on line 7

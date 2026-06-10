@@ -16,7 +16,7 @@ if (empty($_SESSION['pedido_pendiente_pago'])) {
 $pedido_data = $_SESSION['pedido_pendiente_pago'];
 
 // Cargar credenciales
-$envFile = '/var/www/html/marlene-store/.env';
+$envFile = __DIR__ . '/.env';
 $env = [];
 foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $linea) {
     if (strpos(trim($linea), '#') === 0) continue; // saltear comentarios

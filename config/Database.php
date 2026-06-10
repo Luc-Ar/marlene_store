@@ -8,7 +8,7 @@ class Database
         if (self::$instancia === null) {
 
             // Ruta absoluta al .env
-            $envFile = '/var/www/html/marlene-store/.env';
+            $envFile = __DIR__ . '/../.env';
             $env = file_exists($envFile) ? parse_ini_file($envFile) : [];
 
             $host = $env['DB_HOST'] ?? 'localhost';
