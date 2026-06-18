@@ -1,20 +1,25 @@
-# Forzar HTTPS
+# Forzar HTTPS (comentado para pruebas locales, sin SSL)
 <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{HTTPS} off
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+     RewriteEngine On
+     RewriteCond %{HTTPS} off
+     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
+
+# Páginas de error personalizadas
+ErrorDocument 403 /403.php
+ErrorDocument 404 /404.php
+ErrorDocument 500 /500.php
 
 # Proteger archivos sensibles
 <FilesMatch "\.(env|log|sql|sh|git)$">
-    Order allow,deny
-    Deny from all
+    Require all denied
 </FilesMatch>
 
 # Bloquear acceso directo a carpetas
 Options -Indexes
 
-# Proteger carpeta vendor y logs
+# Proteger carpeta vendor (redirige internamente a la página 403 personalizada)
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^vendor/ /403.php [L]
+</IfModule>

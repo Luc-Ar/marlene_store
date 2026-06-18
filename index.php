@@ -1,5 +1,7 @@
 <?php
+
 session_start();
+require_once __DIR__ . '/includes/error-handler.php';
 require_once __DIR__ . '/config/Database.php';
 $conexion = Database::getConexion();
 
