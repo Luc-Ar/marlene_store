@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/error-handler-json.php';
 require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/includes/emails.php';
