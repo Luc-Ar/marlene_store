@@ -107,14 +107,18 @@ function enviarPorWhatsapp() {
 }
 function irAlCheckout() {
   if (carrito.length === 0) return;
-  fetch('/marlene-store/carrito-api.php', {
+  fetch('/carrito-api.php', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ accion: 'sincronizar', items: carrito })
   })
     .then(r => r.json())
     .then(data => {
-      if (data.ok) window.location.href = '/marlene-store/checkout.php';
+      if (data.ok) window.location.href = '/checkout.php';
+      else alert('Error al procesar el carrito. Intentá de nuevo.');
+    })
+    .catch(() => {
+      alert('Error de conexión. Intentá de nuevo.');
     });
 }
 

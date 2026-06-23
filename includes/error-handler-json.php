@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/includes/error-handler-json.php';
 /**
  * Manejador de errores para endpoints tipo API (responden JSON),
  * como carrito-api.php y webhook-mp.php.
