@@ -5,6 +5,7 @@
 const WA_NUMBER = '5493704097831';
 let carrito = JSON.parse(localStorage.getItem('marlene_carrito') || '[]');
 
+// ─── Agregar producto al carrito ───
 function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
   const existente = carrito.find(i => i.nombre === nombre);
   if (existente) {
@@ -12,6 +13,7 @@ function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
   } else {
     carrito.push({ nombre, imagen, subcategoria, cantidad: 1, precio });
   }
+  localStorage.setItem('marlene_carrito', JSON.stringify(carrito));
   actualizarCarrito();
   abrirCarrito();
   btn.textContent = '✓ Agregado';
@@ -21,20 +23,31 @@ function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
     btn.classList.remove('agregado');
   }, 1500);
 }
-actualizarCarrito();
+
+// ─── Actualizar UI del carrito ───
 function actualizarCarrito() {
   const total = carrito.reduce((acc, i) => acc + i.cantidad, 0);
+
   const badge = document.getElementById('carrito-badge');
-  badge.textContent = total;
-  badge.classList.toggle('visible', total > 0);
-  document.getElementById('carrito-total').textContent = total;
+  if (badge) {
+    badge.textContent = total;
+    badge.classList.toggle('visible', total > 0);
+  }
+
+  const elTotal = document.getElementById('carrito-total');
+  const elSubtotal = document.getElementById('carrito-subtotal');
+  if (elTotal) elTotal.textContent = total;
   const totalPesos = carrito.reduce((acc, i) => acc + ((i.precio || 0) * i.cantidad), 0);
-  document.getElementById('carrito-subtotal').textContent = '$' + totalPesos.toLocaleString('es-AR');
+  if (elSubtotal) elSubtotal.textContent = '$' + totalPesos.toLocaleString('es-AR');
+
   const footer = document.getElementById('carrito-footer');
   const itemsContainer = document.getElementById('carrito-items');
+  if (!itemsContainer) return;
+
   itemsContainer.innerHTML = '';
+
   if (carrito.length === 0) {
-    footer.style.display = 'none';
+    if (footer) footer.style.display = 'none';
     itemsContainer.innerHTML = `
       <div class="carrito-vacio">
         <p>🛒</p>
@@ -42,7 +55,9 @@ function actualizarCarrito() {
       </div>`;
     return;
   }
-  footer.style.display = 'block';
+
+  if (footer) footer.style.display = 'block';
+
   carrito.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'carrito-item';
@@ -63,22 +78,29 @@ function actualizarCarrito() {
   });
 }
 
+// ─── Cambiar cantidad ───
 function cambiarCantidad(index, delta) {
   carrito[index].cantidad += delta;
   if (carrito[index].cantidad <= 0) carrito.splice(index, 1);
+  localStorage.setItem('marlene_carrito', JSON.stringify(carrito));
   actualizarCarrito();
 }
 
+// ─── Eliminar item ───
 function eliminarItem(index) {
   carrito.splice(index, 1);
+  localStorage.setItem('marlene_carrito', JSON.stringify(carrito));
   actualizarCarrito();
 }
 
+// ─── Vaciar carrito ───
 function vaciarCarrito() {
   carrito = [];
+  localStorage.setItem('marlene_carrito', JSON.stringify(carrito));
   actualizarCarrito();
 }
 
+// ─── Abrir panel ───
 function abrirCarrito() {
   document.getElementById('carrito-panel').classList.add('abierto');
   document.getElementById('carrito-overlay').classList.add('abierto');
@@ -86,6 +108,7 @@ function abrirCarrito() {
   if (waBtn) waBtn.style.display = 'none';
 }
 
+// ─── Cerrar panel ───
 function cerrarCarrito() {
   document.getElementById('carrito-panel').classList.remove('abierto');
   document.getElementById('carrito-overlay').classList.remove('abierto');
@@ -93,6 +116,7 @@ function cerrarCarrito() {
   if (waBtn) waBtn.style.display = 'flex';
 }
 
+// ─── Enviar pedido por WhatsApp ───
 function enviarPorWhatsapp() {
   if (carrito.length === 0) return;
   let mensaje = '¡Hola Marlene! 👋 Me gustaría consultar por los siguientes productos:\n\n';
@@ -105,6 +129,8 @@ function enviarPorWhatsapp() {
   const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensaje)}`;
   window.open(url, '_blank');
 }
+
+// ─── Ir al checkout ───
 function irAlCheckout() {
   if (carrito.length === 0) return;
   fetch('/carrito-api.php', {
@@ -114,8 +140,11 @@ function irAlCheckout() {
   })
     .then(r => r.json())
     .then(data => {
-      if (data.ok) window.location.href = '/checkout.php';
-      else alert('Error al procesar el carrito. Intentá de nuevo.');
+      if (data.ok) {
+        window.location.href = '/checkout.php';
+      } else {
+        alert('Error al procesar el carrito. Intentá de nuevo.');
+      }
     })
     .catch(() => {
       alert('Error de conexión. Intentá de nuevo.');
@@ -137,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // ─── Animación de entrada ───
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -152,5 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
     card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
     observer.observe(card);
   });
+
   actualizarCarrito();
 });
