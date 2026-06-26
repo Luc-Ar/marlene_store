@@ -1,4 +1,6 @@
 <?php
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
 session_start();
 require_once __DIR__ . '/includes/error-handler.php';
 require_once __DIR__ . '/config/Database.php';
@@ -72,8 +74,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nueva_direccion'])) {
 // Eliminar dirección
 if (isset($_GET['eliminar_direccion'])) {
     $id_dir = (int)$_GET['eliminar_direccion'];
-    $stmt = $conexion->prepare("DELETE FROM direcciones WHERE id = ? AND id_cliente = ?");
-    $stmt->bind_param("ii", $id_dir, $id_cliente);
+
+    // Verificar si tiene pedidos asociados
+    $stmt = $conexion->prepare("SELECT COUNT(*) FROM pedidos WHERE id_direccion = ?");
+    $stmt->bind_param("i", $id_dir);
+    $stmt->execute();
+    $tiene_pedidos = $stmt->get_result()->fetch_row()[0] > 0;
+
+    if ($tiene_pedidos) {
+        // No borrar físicamente — marcar como inactiva
+        $stmt = $conexion->prepare("UPDATE direcciones SET activo = 0 WHERE id = ? AND id_cliente = ?");
+        $stmt->bind_param("ii", $id_dir, $id_cliente);
+    } else {
+        // Sin pedidos asociados — borrar físicamente
+        $stmt = $conexion->prepare("DELETE FROM direcciones WHERE id = ? AND id_cliente = ?");
+        $stmt->bind_param("ii", $id_dir, $id_cliente);
+    }
     $stmt->execute();
     header('Location: /mi-cuenta.php?tab=direcciones');
     exit;
@@ -357,11 +373,11 @@ require_once __DIR__ . '/includes/header.php';
     <div class="tab-content" id="tab-direcciones">
         <?php
         $stmt = $conexion->prepare("
-            SELECT d.*, l.nombre as localidad_nombre
-            FROM direcciones d
-            LEFT JOIN localidades l ON d.id_localidad = l.id
-            WHERE d.id_cliente = ?
-            ORDER BY d.principal DESC, d.fecha_creacion DESC
+                 SELECT d.*, l.nombre as localidad_nombre
+                 FROM direcciones d
+                 LEFT JOIN localidades l ON d.id_localidad = l.id
+                 WHERE d.id_cliente = ? AND (d.activo = 1 OR d.activo IS NULL)
+                 ORDER BY d.principal DESC, d.fecha_creacion DESC
         ");
         $stmt->bind_param("i", $id_cliente);
         $stmt->execute();
