@@ -1,9 +1,10 @@
-# Forzar HTTPS (comentado para pruebas locales, sin SSL)
-#<IfModule mod_rewrite.c>
-#     RewriteEngine On
-#     RewriteCond %{HTTPS} off
-#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-#</IfModule>
+# Forzar HTTPS
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    RewriteRule ^sitemap\.xml$ /sitemap.php [L]
+</IfModule>
 
 # Páginas de error personalizadas
 ErrorDocument 403 /403.php
@@ -18,7 +19,7 @@ ErrorDocument 500 /500.php
 # Bloquear acceso directo a carpetas
 Options -Indexes
 
-# Proteger carpeta vendor (redirige internamente a la página 403 personalizada)
+# Proteger carpeta vendor
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^vendor/ /403.php [L]

@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /catalogo.php
+Allow: /producto.php
+
+Disallow: /admin/
+Disallow: /checkout.php
+Disallow: /confirmacion.php
+Disallow: /pago.php
+Disallow: /pago-resultado.php
+Disallow: /mi-cuenta.php
+Disallow: /login-cliente.php
+Disallow: /registro.php
+Disallow: /logout-cliente.php
+Disallow: /carrito-api.php
+Disallow: /webhook-mp.php
+Disallow: /config/
+Disallow: /includes/
+Disallow: /vendor/
+Disallow: /assets/js/
+
+Sitemap: https://marlene-store.com.ar/sitemap.xml
