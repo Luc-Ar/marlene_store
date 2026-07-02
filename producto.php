@@ -1,5 +1,6 @@
 <?php
 session_start();
+
 require_once __DIR__ . '/includes/error-handler.php';
 require_once __DIR__ . '/config/Database.php';
 $conexion = Database::getConexion();
@@ -232,6 +233,12 @@ $estilos_extra = '
     .prod-nombre { font-size: 1.8rem; }
 }
 ';
+$titulo         = $producto['nombre'] . ' — Marlene STORE';
+$og_titulo      = $titulo;
+$og_descripcion = $producto['descripcion_corta'] ?? 'Compralo en Marlene Store';
+$og_imagen = 'https://marlene-store.com.ar/' . ltrim($producto['imagen_principal'], '/');
+$css_extra      = ['/assets/css/catalogo.css'];
+$estilos_extra  = '...'; // los estilos que ya tenía
 
 require_once __DIR__ . '/includes/header.php';
 ?>
