@@ -3,14 +3,16 @@ session_start();
 require_once __DIR__ . '/includes/error-handler.php';
 require_once __DIR__ . '/config/Database.php';
 
-if (empty($_SESSION['carrito'])) {
+if (empty($_SESSION['carrito']) && !isset($_GET['error'])) {
     header('Location: catalogo.php');
     exit;
 }
 
 $conexion = Database::getConexion();
 $error = '';
-
+if (isset($_GET['error']) && $_GET['error'] === 'pago') {
+    $error = 'Hubo un problema al procesar el pago con MercadoPago. Podés intentarlo de nuevo o elegir otro método de pago.';
+}
 // Cargar provincias
 $stmt_provs = $conexion->prepare("SELECT id, nombre FROM provincias ORDER BY nombre ASC");
 $stmt_provs->execute();
@@ -142,8 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Totales para mostrar
-$items  = array_values($_SESSION['carrito']);
-$total  = array_sum(array_map(fn($i) => $i['precio'] * $i['cantidad'], $items));
+$items    = array_values($_SESSION['carrito'] ?? []);
+$total    = array_sum(array_map(fn($i) => $i['precio'] * $i['cantidad'], $items));
 $cantidad = array_sum(array_column($items, 'cantidad'));
 
 // Variables para header.php
@@ -353,7 +355,33 @@ require_once __DIR__ . '/includes/header.php';
         <h1 class="checkout-titulo">Finalizar compra</h1>
 
         <?php if ($error): ?>
-            <div class="error-msg">⚠️ <?= htmlspecialchars($error) ?></div>
+            <div class="error-msg" style="
+        background: #FFF8E1;
+        border: 1.5px solid #F59E0B;
+        color: #92400E;
+        padding: 18px 20px;
+        border-radius: 10px;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.82rem;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    ">
+                <span style="font-size:1.8rem;line-height:1;">⚠️</span>
+                <div>
+                    <strong style="display:block;margin-bottom:4px;font-size:0.85rem;">
+                        Hubo un problema con tu pago
+                    </strong>
+                    <?= htmlspecialchars($error) ?>
+                    <div style="margin-top:10px;">
+                        <a href="https://wa.me/5493704097831" target="_blank"
+                            style="color:#92400E;font-weight:700;text-decoration:underline;">
+                            💬 Consultanos por WhatsApp
+                        </a>
+                    </div>
+                </div>
+            </div>
         <?php endif; ?>
 
         <form method="POST" id="form-checkout">

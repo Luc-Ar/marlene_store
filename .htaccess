@@ -1,10 +1,10 @@
 # Forzar HTTPS
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{HTTPS} off
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-    RewriteRule ^sitemap\.xml$ /sitemap.php [L]
-</IfModule>
+#<IfModule mod_rewrite.c>
+#    RewriteEngine On
+#    RewriteCond %{HTTPS} off
+#    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+#    RewriteRule ^sitemap\.xml$ /sitemap.php [L]
+#</IfModule>
 
 # Páginas de error personalizadas
 ErrorDocument 403 /403.php
