@@ -1,14 +1,12 @@
 <?php
 session_start();
+require_once __DIR__ . '/../includes/error-handler.php';
+require_once __DIR__ . '/../config/Database.php';
+
 if (isset($_SESSION['usuario_id'])) {
-  header('Location: index.php');
+  header('Location: /admin/index.php');
   exit;
 }
-
-ini_set('display_errors', 0);
-error_reporting(0);
-
-require_once __DIR__ . '/../config/Database.php';
 
 $error = '';
 
@@ -27,14 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $_SESSION['usuario_id']       = $user['id'];
       $_SESSION['usuario_nombre']   = $user['nombre'] ?? 'Admin';
       $_SESSION['usuario_apellido'] = $user['apellido'] ?? '';
-      header('Location: index.php');
+      header('Location: /admin/index.php');
       exit;
     } else {
       $error = 'Usuario o contraseña incorrectos.';
     }
   } catch (Exception $e) {
     $error = 'Error de conexión.';
-    error_log("Login error: " . $e->getMessage());
+    error_log("Login admin error: " . $e->getMessage());
   }
 }
 ?>
@@ -197,8 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST">
       <div class="form-group">
         <label>Usuario</label>
-        <input type="text" name="usuario" required
-          autocomplete="username"
+        <input type="text" name="usuario" required autocomplete="username"
           value="<?= htmlspecialchars($_POST['usuario'] ?? '') ?>">
       </div>
       <div class="form-group">
@@ -209,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 
     <div class="volver">
-      <a href="../index.php">← Volver a la tienda</a>
+      <a href="/index.php">← Volver a la tienda</a>
     </div>
   </div>
 </body>
