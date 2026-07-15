@@ -5,8 +5,7 @@ if (!isset($_SESSION['usuario_id'])) {
   exit;
 }
 
-require_once '../autoload.php';
-
+require_once __DIR__ . '/../autoload.php';
 try {
   $db = Database::getConexion();
   $productoRepo = new ProductoRepository($db);
@@ -353,9 +352,10 @@ try {
       <a href="pedidos.php" class="nav-item">📦 Pedidos</a>
       <a href="clientes.php" class="nav-item">👥 Clientes</a>
       <p class="nav-section">Tienda</p>
-<a href="../index.php" class="nav-item" target="_blank" rel="noopener noreferrer">
-    🌐 Ver tienda
-</a>    </nav>
+      <a href="../index.php" class="nav-item" target="_blank" rel="noopener noreferrer">
+        🌐 Ver tienda
+      </a>
+    </nav>
     <div class="sidebar-footer">
       <a href="logout.php" class="btn-logout-sidebar">🚪 Cerrar sesión</a>
     </div>

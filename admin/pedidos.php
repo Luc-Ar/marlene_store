@@ -5,8 +5,8 @@ if (!isset($_SESSION['usuario_id'])) {
   exit;
 }
 
-require_once '../config/Database.php';
-require_once '../models/PedidoRepository.php';
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../models/PedidoRepository.php';
 
 $db = Database::getConexion();
 $pedidoRepo = new PedidoRepository($db);
