@@ -12,10 +12,11 @@ if (!isset($_SESSION['usuario_id'])) {
 
 require_once __DIR__ . '/../autoload.php';
 
+$busqueda = trim($_GET['buscar'] ?? '');
+
 try {
   $db          = Database::getConexion();
   $clienteRepo = new ClienteRepository($db);
-  $busqueda    = trim($_GET['buscar'] ?? '');
   $clientes    = $clienteRepo->listarClientes($busqueda);
 } catch (Exception $e) {
   error_log("Error en clientes.php: " . $e->getMessage());
