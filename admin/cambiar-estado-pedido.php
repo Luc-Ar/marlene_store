@@ -1,11 +1,13 @@
 <?php
 session_start();
+require_once __DIR__ . '/../includes/error-handler.php';
+
 if (!isset($_SESSION['usuario_id'])) {
-    header('Location: login.php');
+    header('Location: /admin/login.php');
     exit;
 }
 
-require_once '../config/Database.php';
+require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../includes/emails.php';
 
 $conexion = Database::getConexion();
@@ -16,7 +18,7 @@ if (isset($_GET['id']) && isset($_GET['estado'])) {
 
     $estados_validos = ['pendiente', 'confirmado', 'en_preparacion', 'demorado', 'enviado', 'entregado', 'cancelado'];
     if (!in_array($nuevo_estado, $estados_validos)) {
-        header('Location: pedidos.php');
+        header('Location: /admin/pedidos.php');
         exit;
     }
 
@@ -44,6 +46,9 @@ if (isset($_GET['id']) && isset($_GET['estado'])) {
         );
     }
 
-    header("Location: pedidos.php?mensaje=estado_actualizado&id=$id_pedido");
+    header("Location: /admin/pedidos.php?mensaje=estado_actualizado&id=$id_pedido");
+    exit;
 }
+
+header('Location: /admin/pedidos.php');
 exit;
