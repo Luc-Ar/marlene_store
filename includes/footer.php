@@ -56,6 +56,15 @@ $catsFooter = $conexionFooter
         <li><a href="/mi-cuenta.php">Mi cuenta</a></li>
       </ul>
     </div>
+
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="/terminos-condiciones.php">Términos y Condiciones</a></li>
+        <li><a href="/politica-privacidad.php">Privacidad</a></li>
+        <li><a href="/politica-devoluciones.php">Devoluciones</a></li>
+      </ul>
+    </div>
   </div>
 
   <div class="footer-bottom">
