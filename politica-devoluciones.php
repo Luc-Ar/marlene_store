@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/error-handler.php';
 
 $titulo          = 'Política de Devoluciones — Marlene STORE';
 $meta_descripcion = 'Conocé cómo funcionan las devoluciones y cambios en Marlene STORE.';
+$css_extra        = ['/assets/css/catalogo.css'];
 
 $estilos_extra = '
 .legal-wrap { max-width: 820px; margin: 60px auto; padding: 0 24px; }
