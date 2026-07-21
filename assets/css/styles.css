@@ -1027,58 +1027,6 @@ footer {
 }
 
 /* ─── RESPONSIVE ─── */
-@media (max-width: 900px) {
-  .hero {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-right {
-    height: 50vw;
-  }
-
-  .cats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .prod-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .contact-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .footer-top {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-
-  .nav-links {
-    display: none;
-  }
-
-  .envios-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .faq-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 600px) {
-  .cats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .prod-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .cf-row {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ─── ENVÍOS ─── */
 .envios-section {
@@ -1513,4 +1461,143 @@ footer {
 .nav-cuenta-dropdown a:last-child {
   color: #DC2626;
   border-top: 1px solid rgba(200, 152, 154, 0.2);
+}
+
+/* ─── RESPONSIVE (siempre al final, para que gane sobre cualquier regla nueva) ─── */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-right {
+    height: 50vw;
+  }
+
+  .cats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .prod-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .contact-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-top {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .envios-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Botones flotantes: en desktop el texto completo ("WhatsApp",
+     "CARRITO") queda bien, pero en mobile ocupan demasiado lugar y
+     tapan tarjetas de producto y el footer. Los volvemos circulares,
+     solo con el ícono. */
+  .wa-btn {
+    padding: 14px;
+    border-radius: 50%;
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .wa-btn span:not(.wa-icon) {
+    display: none;
+  }
+
+  .wa-icon {
+    font-size: 1.4rem;
+  }
+
+  /* Footer: estos márgenes en px estaban pensados solo para desktop.
+     En mobile empujaban el texto y los íconos fuera de lugar, y como
+     además hay un segundo set de íconos sociales arriba (junto al
+     logo), quedaba todo amontonado y se veía roto. Reseteamos los
+     márgenes y ocultamos este segundo set, que es redundante en
+     pantallas chicas. */
+  .footer-bottom {
+    margin-left: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .footer-bottom p {
+    margin-left: 0;
+  }
+
+  .footer-bottom .socials {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .cats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .prod-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Logo: en desktop el letter-spacing grande queda elegante, pero en
+     una pantalla angosta hace que "STORE" se salga de la pantalla y
+     genere scroll horizontal en todo el sitio. Lo achicamos acá. */
+  .logo-wrap {
+    gap: 0.7rem;
+  }
+
+  .logo-script {
+    font-size: 2.4rem;
+  }
+
+  .logo-store {
+    font-size: 0.75rem;
+    letter-spacing: 0.35rem;
+  }
+
+  .footer-brand .logo-script {
+    font-size: 2.2rem;
+  }
+
+  /* Título "Marlene" del hero: el clamp() de la versión desktop tiene
+     un mínimo de 5rem que no baja nunca, así que en mobile se corta.
+     Le damos un tamaño fijo más chico, acorde a pantallas angostas. */
+  .hero-title {
+    font-size: 3.2rem;
+    letter-spacing: 0.3rem;
+    margin-left: 0;
+  }
+
+  .hero-store {
+    font-size: 1.8rem;
+    letter-spacing: 0.6rem;
+  }
+
+  .hero-left {
+    padding: 60px 6% 40px 8%;
+  }
+
+  /* Espacio de respiro al final de cualquier página para que los
+     botones flotantes (WhatsApp/Carrito) no tapen el último tramo
+     de contenido al hacer scroll hasta el final. */
+  body {
+    padding-bottom: 90px;
+  }
 }

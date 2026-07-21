@@ -34,8 +34,3 @@
     🛒 CARRITO
     <span class="carrito-badge" id="carrito-badge">0</span>
 </button>
-
-<!-- BOTÓN WHATSAPP FLOTANTE -->
-<a href="https://wa.me/5493704097831" target="_blank" class="wa-btn">
-    💬 WHATSAPP
-</a>
