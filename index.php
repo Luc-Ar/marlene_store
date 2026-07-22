@@ -259,7 +259,7 @@ require_once __DIR__ . '/includes/header.php';
       </div>
     </div>
   </div>
-  <div style="text-align:center;margin-top:48px;">
+  <div class="envios-cta">
     <a href="https://wa.me/5493704097831" class="btn-main" target="_blank">Consultar envío por WhatsApp</a>
   </div>
 </section>

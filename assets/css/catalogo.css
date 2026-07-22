@@ -643,4 +643,35 @@
     padding: 12px 20px;
     font-size: 0.7rem;
   }
+
+  /* Precio + botones "Ver"/"Agregar" no entraban en una sola fila en
+     tarjetas angostas (2 por fila) y se cortaban. Los apilamos:
+     precio arriba, botones abajo con todo el ancho disponible. */
+  .cat-prod-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .cat-prod-foot>div {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  /* "Ver" es la acción secundaria: la dejamos compacta, del ancho de
+     su propio texto. "+ Agregar" es la acción principal (la que
+     genera la venta): que se estire y use el espacio que sobra. */
+  .cat-prod-foot>div>a.cat-prod-btn-agregar {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+  }
+
+  .cat-prod-foot>div>button.cat-prod-btn-agregar {
+    flex: 1;
+    padding: 8px 6px;
+    font-size: 0.52rem;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
 }

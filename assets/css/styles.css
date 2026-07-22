@@ -1148,7 +1148,6 @@ footer {
 #carrito-overlay.abierto {
   display: block;
 }
-}
 
 .carrito-header {
   display: flex;
@@ -1463,6 +1462,11 @@ footer {
   border-top: 1px solid rgba(200, 152, 154, 0.2);
 }
 
+.envios-cta {
+  text-align: center;
+  margin-top: 48px;
+}
+
 /* ─── RESPONSIVE (siempre al final, para que gane sobre cualquier regla nueva) ─── */
 @media (max-width: 900px) {
   .hero {
@@ -1594,10 +1598,74 @@ footer {
     padding: 60px 6% 40px 8%;
   }
 
+  /* Las tarjetas del showcase (Mochilas/Termos/Calzado/etc.) tenían
+     el mismo tamaño que en desktop, y 3 por fila no entraban en una
+     pantalla angosta — se recortaban en los bordes por el
+     overflow:hidden de hero-right. Las achicamos para que entren
+     completas. */
+  .hero-emoji-showcase {
+    gap: 10px;
+  }
+
+  .showcase-row {
+    gap: 10px;
+  }
+
+  .showcase-item {
+    padding: 14px 6px;
+    border-radius: 12px;
+  }
+
+  .showcase-item .si-emoji {
+    font-size: 1.8rem;
+    margin-bottom: 4px;
+  }
+
+  .showcase-item .si-label {
+    font-size: 0.5rem;
+    letter-spacing: 0.5px;
+  }
+
+  /* Separación visual entre hero-left (crema) y hero-right (rosa):
+     en vez de un corte recto y abrupto entre los dos colores, le
+     redondeamos las esquinas de arriba a hero-right para que parezca
+     una tarjeta apoyada encima, y le sumamos aire arriba para que
+     las tarjetas no arranquen pegadas al borde. */
+  .hero-right {
+    border-radius: 28px 28px 0 0;
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+
+  .hero-left {
+    padding-bottom: 24px;
+  }
+
+  /* El borde redondeado de hero-right, al recortar la esquina, deja
+     ver lo que hay "detrás" (el fondo de .hero). Si ese fondo no es
+     del mismo color que hero-left, se nota un triangulito raro. Le
+     ponemos el mismo crema de hero-left para que combine. */
+  .hero {
+    background: var(--crema2);
+  }
+
   /* Espacio de respiro al final de cualquier página para que los
      botones flotantes (WhatsApp/Carrito) no tapen el último tramo
      de contenido al hacer scroll hasta el final. */
   body {
     padding-bottom: 90px;
   }
+}
+
+/* El botón de WhatsApp de envíos tiene texto largo y en mobile se
+     parte en 2 líneas — le damos más aire arriba y lo achicamos un
+     poco para que no quede pegado a la tarjeta de arriba. */
+.envios-cta {
+  margin-top: 28px;
+}
+
+.envios-cta .btn-main {
+  padding: 14px 20px;
+  letter-spacing: 1px;
+  font-size: 0.65rem;
 }
