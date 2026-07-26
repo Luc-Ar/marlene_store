@@ -11,9 +11,13 @@ function scrollToContact() {
 }
 
 // ─── Confirmación del formulario de contacto ───
+// ─── Envío del formulario de contacto por WhatsApp ───
+// ─── Envío del formulario de contacto por WhatsApp ───
 function enviarFormulario() {
-  const nombre = document.querySelector('.cf-group input[type="text"]');
-  const telefono = document.querySelector('.cf-group input[type="tel"]');
+  const nombre = document.getElementById('cf-nombre');
+  const telefono = document.getElementById('cf-telefono');
+  const categoria = document.getElementById('cf-categoria');
+  const mensaje = document.getElementById('cf-mensaje');
 
   if (nombre && nombre.value.trim() === '') {
     alert('Por favor, ingresá tu nombre 🌸');
@@ -27,7 +31,34 @@ function enviarFormulario() {
     return;
   }
 
-  alert('¡Gracias por tu mensaje! Te respondemos pronto 🌸');
+  let texto = `Hola! Soy ${nombre.value.trim()}.\n`;
+  texto += `Mi teléfono: ${telefono.value.trim()}\n`;
+  if (categoria && categoria.value) {
+    texto += `Me interesa: ${categoria.value}\n`;
+  }
+  if (mensaje && mensaje.value.trim()) {
+    texto += `Mensaje: ${mensaje.value.trim()}`;
+  }
+
+  const url = 'https://wa.me/5493704097831?text=' + encodeURIComponent(texto);
+
+  // En vez de window.open() (que muchos navegadores bloquean como
+  // popup sin avisar), simulamos el click en un link real — eso
+  // ningún navegador lo bloquea, porque es indistinguible de un
+  // click genuino del usuario.
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  // Limpiar el formulario después de enviar
+  nombre.value = '';
+  telefono.value = '';
+  if (categoria) categoria.value = '';
+  if (mensaje) mensaje.value = '';
 }
 
 // ─── Asignar eventos al cargar la página ───
@@ -44,7 +75,14 @@ document.addEventListener('DOMContentLoaded', function () {
   if (submitBtn) {
     submitBtn.addEventListener('click', enviarFormulario);
   }
-
+  // Contador de caracteres del mensaje de contacto
+  const mensajeInput = document.getElementById('cf-mensaje');
+  const contador = document.getElementById('cf-contador');
+  if (mensajeInput && contador) {
+    mensajeInput.addEventListener('input', function () {
+      contador.textContent = mensajeInput.value.length + ' / 500';
+    });
+  }
   // ─── Animación de entrada de las cards al hacer scroll ───
   const observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {

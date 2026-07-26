@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/includes/error-handler.php';
 require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 if (empty($_SESSION['carrito']) && !isset($_GET['error'])) {
     header('Location: catalogo.php');
@@ -28,7 +29,9 @@ if (isset($_SESSION['cliente_id'])) {
 }
 
 // ─── PROCESAR FORMULARIO ───
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
+    $error = 'La sesión expiró, recargá la página e intentá de nuevo.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre      = trim($_POST['nombre'] ?? '');
     $apellido    = trim($_POST['apellido'] ?? '');
     $email       = trim($_POST['email'] ?? '');
@@ -385,7 +388,7 @@ require_once __DIR__ . '/includes/header.php';
         <?php endif; ?>
 
         <form method="POST" id="form-checkout">
-
+            <?= csrfField() ?>
             <!-- Datos personales -->
             <div class="checkout-seccion">
                 <h3>📋 Datos personales</h3>

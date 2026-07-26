@@ -2,6 +2,9 @@
 session_start();
 require_once __DIR__ . '/includes/error-handler.php';
 require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/includes/brute-force-protection.php';
+require_once __DIR__ . '/includes/csrf.php';
+
 
 if (isset($_SESSION['cliente_id'])) {
     header('Location: mi-cuenta.php');
@@ -9,27 +12,34 @@ if (isset($_SESSION['cliente_id'])) {
 }
 
 $error = '';
+$conexion = Database::getConexion();
+$minutosBloqueo = bfEstaBloqueado($conexion, 'cliente');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($minutosBloqueo !== null) {
+    $error = "Demasiados intentos fallidos. Probá de nuevo en $minutosBloqueo minuto(s).";
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
+    $error = 'La sesión expiró, recargá la página e intentá de nuevo.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if (!$email || !$password) {
         $error = 'Completá todos los campos.';
     } else {
-        $conexion = Database::getConexion();
         $stmt = $conexion->prepare("SELECT id, nombre, email, password FROM clientes WHERE email = ? AND activo = 1 LIMIT 1");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $cliente = $stmt->get_result()->fetch_assoc();
 
         if ($cliente && password_verify($password, $cliente['password'])) {
+            bfLimpiar($conexion, 'cliente');
             $_SESSION['cliente_id']     = $cliente['id'];
             $_SESSION['cliente_nombre'] = $cliente['nombre'];
             $_SESSION['cliente_email']  = $cliente['email'];
             header('Location: mi-cuenta.php');
             exit;
         } else {
+            bfRegistrarFallo($conexion, 'cliente');
             $error = 'Email o contraseña incorrectos.';
         }
     }
@@ -145,6 +155,7 @@ require_once __DIR__ . '/includes/header.php';
             <div class="error-msg">⚠️ <?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
         <form method="POST">
+            <?= csrfField() ?>
             <div class="form-group">
                 <label>Email *</label>
                 <input type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">

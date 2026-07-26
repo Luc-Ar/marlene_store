@@ -6,9 +6,14 @@ if (!isset($_SESSION['usuario_id'])) {
     header('Location: /admin/login.php');
     exit;
 }
-
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../includes/csrf.php';
 $conexion = Database::getConexion();
+
+if (!csrfValidarGet()) {
+    header('Location: /admin/productos.php?error=csrf');
+    exit;
+}
 
 if (isset($_GET['id']) && isset($_GET['nuevo_estado'])) {
     $id           = (int)$_GET['id'];

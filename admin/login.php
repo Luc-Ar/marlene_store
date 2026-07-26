@@ -2,6 +2,8 @@
 session_start();
 require_once __DIR__ . '/../includes/error-handler.php';
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../includes/brute-force-protection.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 if (isset($_SESSION['usuario_id'])) {
   header('Location: /admin/index.php');
@@ -9,25 +11,32 @@ if (isset($_SESSION['usuario_id'])) {
 }
 
 $error = '';
+$db = Database::getConexion();
+$minutosBloqueo = bfEstaBloqueado($db, 'admin');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($minutosBloqueo !== null) {
+  $error = "Demasiados intentos fallidos. Probá de nuevo en $minutosBloqueo minuto(s).";
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
+  $error = 'La sesión expiró, recargá la página e intentá de nuevo.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $usuario = trim($_POST['usuario'] ?? '');
   $clave   = $_POST['password'] ?? '';
 
   try {
-    $db   = Database::getConexion();
     $stmt = $db->prepare("SELECT id, password, nombre, apellido FROM usuarios WHERE usuario = ? LIMIT 1");
     $stmt->bind_param("s", $usuario);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
 
     if ($user && password_verify($clave, $user['password'])) {
+      bfLimpiar($db, 'admin');
       $_SESSION['usuario_id']       = $user['id'];
       $_SESSION['usuario_nombre']   = $user['nombre'] ?? 'Admin';
       $_SESSION['usuario_apellido'] = $user['apellido'] ?? '';
       header('Location: /admin/index.php');
       exit;
     } else {
+      bfRegistrarFallo($db, 'admin');
       $error = 'Usuario o contraseña incorrectos.';
     }
   } catch (Exception $e) {
@@ -193,6 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <form method="POST">
+       <?= csrfField() ?>
       <div class="form-group">
         <label>Usuario</label>
         <input type="text" name="usuario" required autocomplete="username"

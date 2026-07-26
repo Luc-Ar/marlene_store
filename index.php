@@ -174,16 +174,16 @@ require_once __DIR__ . '/includes/header.php';
       <div class="cf-row">
         <div class="cf-group">
           <label>Nombre</label>
-          <input type="text" placeholder="Tu nombre">
+          <input type="text" id="cf-nombre" placeholder="Tu nombre">
         </div>
         <div class="cf-group">
           <label>Teléfono / WhatsApp</label>
-          <input type="tel" placeholder="Tu número">
+          <input type="tel" id="cf-telefono" placeholder="Tu número">
         </div>
       </div>
       <div class="cf-group">
         <label>¿Qué te interesa?</label>
-        <select>
+        <select id="cf-categoria">
           <option value="">Seleccioná una categoría</option>
           <?php foreach ($categorias as $cat): ?>
             <option><?= htmlspecialchars($cat['nombre']) ?></option>
@@ -193,7 +193,8 @@ require_once __DIR__ . '/includes/header.php';
       </div>
       <div class="cf-group">
         <label>Mensaje</label>
-        <textarea placeholder="Contanos qué necesitás..."></textarea>
+        <textarea id="cf-mensaje" placeholder="Contanos qué necesitás..." maxlength="500"></textarea>
+        <span class="form-hint" id="cf-contador">0 / 500</span>
       </div>
       <button class="cf-submit">Enviar mensaje →</button>
     </div>

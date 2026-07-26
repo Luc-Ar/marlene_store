@@ -3,6 +3,7 @@ session_start();
 require_once __DIR__ . '/../includes/error-handler.php';
 require_once __DIR__ . '/../autoload.php';
 require_once __DIR__ . '/../includes/subir-imagen-producto.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: /admin/login.php');
@@ -16,8 +17,9 @@ $productoRepo = new ProductoRepository($db);
 // así que este SELECT queda directo, sin inventar una clase que no existe.
 $res_cats = $db->query("SELECT id, nombre FROM categorias WHERE activo = 1 ORDER BY nombre ASC");
 $error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guardar'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guardar']) && !csrfValidar()) {
+    $error = 'La sesión expiró, recargá la página e intentá de nuevo.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guardar'])) {
     $nombre            = trim($_POST['nombre']);
     $descripcion_corta = trim($_POST['descripcion_corta'] ?? '');
     $descripcion_larga = trim($_POST['descripcion_larga'] ?? '');
@@ -132,6 +134,7 @@ require_once __DIR__ . '/includes/header-admin.php';
 <?php endif; ?>
 
 <form method="POST" enctype="multipart/form-data">
+    <?= csrfField() ?>
     <div class="form-grid">
         <div>
             <div class="form-card">

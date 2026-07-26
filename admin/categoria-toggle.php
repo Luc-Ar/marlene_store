@@ -8,7 +8,13 @@ if (!isset($_SESSION['usuario_id'])) {
 }
 
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../includes/csrf.php';
 $conexion = Database::getConexion();
+
+if (!csrfValidarGet()) {
+    header('Location: /admin/categorias.php?error=csrf');
+    exit;
+}
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($id > 0) {

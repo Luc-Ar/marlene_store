@@ -7,6 +7,7 @@ if (!isset($_SESSION['usuario_id'])) {
 
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../models/PedidoRepository.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 $db = Database::getConexion();
 $pedidoRepo = new PedidoRepository($db);
@@ -22,7 +23,9 @@ $colores = [
 ];
 
 // Procesar cambio de estado
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_pedido'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_pedido']) && !csrfValidar()) {
+  // Token inválido: no procesamos el cambio, seguimos de largo
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_pedido'])) {
   $id_pedido    = (int)$_POST['id_pedido'];
   $nuevo_estado = trim($_POST['nuevo_estado']);
 
@@ -577,6 +580,7 @@ $pedidos = $pedidoRepo->listarPedidos($filtros);
     <div class="modal">
       <h3>Actualizar Estado</h3>
       <form method="POST">
+        <?= csrfField() ?>
         <input type="hidden" name="id_pedido" id="in-id">
         <p style="font-size:0.75rem;color:#999;margin-bottom:12px;">Pedido: <strong id="modal-numero"></strong></p>
         <select name="nuevo_estado" id="sel-estado">

@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/includes/error-handler.php';
 require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 if (isset($_SESSION['cliente_id'])) {
     header('Location: mi-cuenta.php');
@@ -9,34 +10,57 @@ if (isset($_SESSION['cliente_id'])) {
 }
 
 $error = '';
+$conexion = Database::getConexion();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email    = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
+    $error = 'La sesión expiró, recargá la página e intentá de nuevo.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email             = trim($_POST['email'] ?? '');
+    $confirmar_email   = trim($_POST['confirmar_email'] ?? '');
+    $password          = $_POST['password'] ?? '';
+    $confirmar_password = $_POST['confirmar_password'] ?? '';
 
-    if (!$email || !$password) {
+    if (!$email || !$confirmar_email || !$password || !$confirmar_password) {
         $error = 'Completá todos los campos.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'El email no es válido.';
+    } elseif ($email !== $confirmar_email) {
+        $error = 'Los dos emails no coinciden.';
+    } elseif ($password !== $confirmar_password) {
+        $error = 'Las dos contraseñas no coinciden.';
+    } elseif (strlen($password) < 8) {
+        $error = 'La contraseña tiene que tener al menos 8 caracteres.';
     } else {
-        $conexion = Database::getConexion();
-        $stmt = $conexion->prepare("SELECT id, nombre, email, password FROM clientes WHERE email = ? AND activo = 1 LIMIT 1");
+        // Chequear que el email no esté ya registrado
+        $stmt = $conexion->prepare("SELECT id FROM clientes WHERE email = ? LIMIT 1");
         $stmt->bind_param("s", $email);
         $stmt->execute();
-        $cliente = $stmt->get_result()->fetch_assoc();
+        $existe = $stmt->get_result()->fetch_assoc();
 
-        if ($cliente && password_verify($password, $cliente['password'])) {
-            $_SESSION['cliente_id']     = $cliente['id'];
-            $_SESSION['cliente_nombre'] = $cliente['nombre'];
-            $_SESSION['cliente_email']  = $cliente['email'];
-            header('Location: mi-cuenta.php');
-            exit;
+        if ($existe) {
+            $error = 'Ya existe una cuenta registrada con ese email.';
         } else {
-            $error = 'Email o contraseña incorrectos.';
+            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt2 = $conexion->prepare("INSERT INTO clientes (nombre, apellido, email, password, activo, fecha_registro) VALUES ('', '', ?, ?, 1, NOW())");
+            $stmt2->bind_param("ss", $email, $passwordHash);
+
+            if ($stmt2->execute()) {
+                $nuevoId = $conexion->insert_id;
+                $_SESSION['cliente_id']     = $nuevoId;
+                $_SESSION['cliente_nombre'] = '';
+                $_SESSION['cliente_email']  = $email;
+                header('Location: mi-cuenta.php');
+                exit;
+            } else {
+                $error = 'No pudimos crear tu cuenta. Probá de nuevo en unos minutos.';
+                error_log("Error al registrar cliente: " . $conexion->error);
+            }
         }
     }
 }
 
 // Variables para header.php
-$titulo = 'Iniciar sesión — Marlene STORE';
+$titulo = 'Registrate — Marlene STORE';
 $sin_nav = true; // Página centrada sin nav
 $estilos_extra = '
 .auth-wrap {
@@ -94,11 +118,21 @@ $estilos_extra = '
     font-family: "Montserrat", sans-serif;
     font-size: 0.85rem;
     color: var(--marron);
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background 0.2s;
     box-sizing: border-box;
     width: 100%;
 }
 .form-group input:focus { outline: none; border-color: var(--dorado); }
+.form-group input:disabled {
+    background: #F5F0EA;
+    color: #aaa;
+    cursor: not-allowed;
+}
+.form-hint {
+    font-size: 0.7rem;
+    color: #999;
+    margin-top: 2px;
+}
 .btn-login {
     width: 100%;
     background: var(--marron);
@@ -132,35 +166,69 @@ $estilos_extra = '
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-    <div class="auth-wrap">
-        <div class="auth-card">
-            <div class="auth-logo">
-                <a href="/index.php">
-                    <span class="logo-script">Marlene</span>
-                    <span class="logo-store">STORE</span>
-                </a>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <a href="/index.php">
+                <span class="logo-script">Marlene</span>
+                <span class="logo-store">STORE</span>
+            </a>
+        </div>
+        <h1 class="auth-titulo">Registrate</h1>
+        <?php if ($error): ?>
+            <div class="error-msg">⚠️ <?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        <form method="POST" id="form-registro" autocomplete="off">
+            <?= csrfField() ?>
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" name="email" id="email" required
+                    value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
             </div>
-            <h1 class="auth-titulo">Iniciar sesión</h1>
-            <?php if ($error): ?>
-                <div class="error-msg">⚠️ <?= htmlspecialchars($error) ?></div>
-            <?php endif; ?>
-            <form method="POST">
-                <div class="form-group">
-                    <label>Email *</label>
-                    <input type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-                </div>
-                <div class="form-group">
-                    <label>Contraseña *</label>
-                    <input type="password" name="password" required>
-                </div>
-                <button type="submit" class="btn-login">Ingresar</button>
-            </form>
-            <div class="auth-footer">
-                ¿No tenés cuenta? <a href="/registro.php">Registrate</a>
+            <div class="form-group">
+                <label>Confirmar email *</label>
+                <input type="email" name="confirmar_email" id="confirmar_email" required disabled
+                    onpaste="return false" ondrop="return false">
+                <span class="form-hint">Volvé a escribirlo — no se puede pegar.</span>
             </div>
+            <div class="form-group">
+                <label>Contraseña *</label>
+                <input type="password" name="password" id="password" required minlength="8">
+                <span class="form-hint">Mínimo 8 caracteres.</span>
+            </div>
+            <div class="form-group">
+                <label>Confirmar contraseña *</label>
+                <input type="password" name="confirmar_password" id="confirmar_password" required disabled
+                    onpaste="return false" ondrop="return false">
+                <span class="form-hint">Volvé a escribirla — no se puede pegar.</span>
+            </div>
+            <button type="submit" class="btn-login">Registrarme</button>
+        </form>
+        <div class="auth-footer">
+            ¿Ya tenés cuenta? <a href="/login-cliente.php">Iniciar sesión</a>
         </div>
     </div>
+</div>
 
-    <script>document.body.style.visibility = 'visible';</script>
+<script>
+    // Los campos de confirmación se destraban recién cuando el
+    // campo original tiene contenido — así el usuario primero
+    // carga el dato "real" antes de poder confirmarlo.
+    const email = document.getElementById('email');
+    const confirmarEmail = document.getElementById('confirmar_email');
+    const password = document.getElementById('password');
+    const confirmarPassword = document.getElementById('confirmar_password');
+
+    email.addEventListener('input', () => {
+        confirmarEmail.disabled = email.value.trim() === '';
+    });
+
+    password.addEventListener('input', () => {
+        confirmarPassword.disabled = password.value === '';
+    });
+
+    document.body.style.visibility = 'visible';
+</script>
 </body>
+
 </html>

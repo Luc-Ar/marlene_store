@@ -9,8 +9,14 @@ if (!isset($_SESSION['usuario_id'])) {
 
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../includes/emails.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 $conexion = Database::getConexion();
+
+if (!csrfValidarGet()) {
+    header('Location: /admin/pedidos.php?error=csrf');
+    exit;
+}
 
 if (isset($_GET['id']) && isset($_GET['estado'])) {
     $id_pedido    = (int)$_GET['id'];

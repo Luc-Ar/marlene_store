@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/../includes/error-handler.php';
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: /admin/login.php');
@@ -27,7 +28,9 @@ if (!$cat) {
 
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
+    $error = 'La sesión expiró, recargá la página e intentá de nuevo.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre'] ?? '');
     $slug   = trim($_POST['slug'] ?? '');
     $desc   = trim($_POST['descripcion'] ?? '');
@@ -99,6 +102,7 @@ require_once __DIR__ . '/includes/header-admin.php';
     <?php endif; ?>
 
     <form method="POST">
+        <?= csrfField() ?>
         <div class="form-card">
             <h3>Información de la categoría</h3>
             <div class="form-group">
