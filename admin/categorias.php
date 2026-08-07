@@ -2,7 +2,7 @@
 session_start();
 require_once __DIR__ . '/../includes/error-handler.php';
 require_once __DIR__ . '/../config/Database.php';
-
+require_once __DIR__ . '/../includes/csrf.php';
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: /admin/login.php');
     exit;
@@ -44,7 +44,15 @@ require_once __DIR__ . '/includes/header-admin.php';
     </div>
     <a href="/admin/categoria-nueva.php" class="btn-nuevo">+ Nueva categoría</a>
 </div>
-
+<?php if (isset($_GET['error']) && $_GET['error'] === 'tiene_productos'): ?>
+    <div style="background:#FEE2E2;color:#991B1B;padding:14px 18px;border-radius:6px;margin-bottom:20px;font-size:0.85rem;">
+        ⚠️ No se puede desactivar: esta categoría tiene <?= (int)($_GET['cantidad'] ?? 0) ?> producto(s) asociado(s). Movelos a otra categoría primero.
+    </div>
+<?php elseif (isset($_GET['error']) && $_GET['error'] === 'csrf'): ?>
+    <div style="background:#FEE2E2;color:#991B1B;padding:14px 18px;border-radius:6px;margin-bottom:20px;font-size:0.85rem;">
+        ⚠️ La sesión expiró, intentá de nuevo.
+    </div>
+<?php endif; ?>
 <div class="tabla-wrap">
     <table>
         <thead>
@@ -76,6 +84,10 @@ require_once __DIR__ . '/includes/header-admin.php';
                         </a>
                         <a href="/admin/categoria-editar.php?id=<?= $cat['id'] ?>" class="btn-accion btn-editar">
                             Editar
+                        </a>
+                        <a href="/admin/categoria-toggle.php?id=<?= $cat['id'] ?>&csrf_token=<?= urlencode(csrfToken()) ?>"
+                            class="btn-accion" style="background:<?= $cat['activo'] ? '#FEE2E2' : '#DCFCE7' ?>;color:<?= $cat['activo'] ? '#991B1B' : '#166534' ?>;">
+                            <?= $cat['activo'] ? 'Desactivar' : 'Activar' ?>
                         </a>
                     </td>
                 </tr>

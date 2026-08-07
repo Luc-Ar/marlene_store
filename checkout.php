@@ -84,65 +84,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
             }
         }
 
-        // Guardar dirección
-        $stmt = $conexion->prepare("INSERT INTO direcciones (id_cliente, calle, altura, codigo_postal, id_localidad) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("isisi", $id_cliente, $calle, $altura, $cp, $id_localidad);
-        $stmt->execute();
-        $id_direccion = $conexion->insert_id;
-
-        // Calcular totales
-        $total = 0;
-        $peso_total = 0;
-        foreach ($_SESSION['carrito'] as $item) {
-            $total += $item['precio'] * $item['cantidad'];
-            $peso_total += ($item['peso'] ?? 0) * $item['cantidad'];
-        }
-
-        // Generar número de pedido
-        $numero_pedido = 'PED-' . strtoupper(uniqid());
-
-        // Insertar pedido
-        $stmt = $conexion->prepare("
-            INSERT INTO pedidos (id_cliente, numero_pedido, estado, total, peso_total, metodo_pago, notas, id_direccion)
-            VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?)
-        ");
-        $stmt->bind_param("isddssi", $id_cliente, $numero_pedido, $total, $peso_total, $metodo_pago, $notas, $id_direccion);
-        $stmt->execute();
-        $id_pedido = $conexion->insert_id;
-
-        // Insertar items y descontar stock
-        foreach ($_SESSION['carrito'] as $item) {
-            $subtotal = $item['precio'] * $item['cantidad'];
-            $stmt = $conexion->prepare("
-                INSERT INTO pedido_items (id_pedido, id_producto, nombre_producto, precio_unitario, cantidad, subtotal)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->bind_param("iisdid", $id_pedido, $item['id'], $item['nombre'], $item['precio'], $item['cantidad'], $subtotal);
+        $conexion->begin_transaction();
+        try {
+            // Guardar dirección
+            $stmt = $conexion->prepare("INSERT INTO direcciones (id_cliente, calle, altura, codigo_postal, id_localidad) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("isisi", $id_cliente, $calle, $altura, $cp, $id_localidad);
             $stmt->execute();
+            $id_direccion = $conexion->insert_id;
 
-            $stmt2 = $conexion->prepare("UPDATE productos SET stock = stock - ? WHERE id = ? AND stock > 0");
-            $stmt2->bind_param("ii", $item['cantidad'], $item['id']);
-            $stmt2->execute();
+            // Calcular totales
+            $total = 0;
+            $peso_total = 0;
+            foreach ($_SESSION['carrito'] as $item) {
+                $total += $item['precio'] * $item['cantidad'];
+                $peso_total += ($item['peso'] ?? 0) * $item['cantidad'];
+            }
+
+            // Generar número de pedido
+            $numero_pedido = 'PED-' . strtoupper(uniqid());
+
+            // Insertar pedido
+            $stmt = $conexion->prepare("
+                INSERT INTO pedidos (id_cliente, numero_pedido, estado, total, peso_total, metodo_pago, notas, id_direccion)
+                VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?)
+            ");
+            $stmt->bind_param("isddssi", $id_cliente, $numero_pedido, $total, $peso_total, $metodo_pago, $notas, $id_direccion);
+            $stmt->execute();
+            $id_pedido = $conexion->insert_id;
+
+            // Insertar items y descontar stock
+            foreach ($_SESSION['carrito'] as $item) {
+                $subtotal = $item['precio'] * $item['cantidad'];
+                $stmt = $conexion->prepare("
+                    INSERT INTO pedido_items (id_pedido, id_producto, nombre_producto, precio_unitario, cantidad, subtotal)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->bind_param("iisdid", $id_pedido, $item['id'], $item['nombre'], $item['precio'], $item['cantidad'], $subtotal);
+                $stmt->execute();
+
+                // Clave del fix: chequeamos que el stock ALCANCE para
+                // la cantidad pedida (no solo que sea mayor a cero).
+                // Esto es lo que evita vender de más si dos personas
+                // compran el mismo producto casi al mismo tiempo.
+                $stmt2 = $conexion->prepare("UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?");
+                $stmt2->bind_param("iii", $item['cantidad'], $item['id'], $item['cantidad']);
+                $stmt2->execute();
+
+                if ($stmt2->affected_rows === 0) {
+                    // No alcanzaba el stock en el momento exacto de la
+                    // compra. Cancelamos TODO el pedido, no solo este
+                    // producto — así no queda a mitad de camino.
+                    throw new Exception("Sin stock suficiente para: " . $item['nombre']);
+                }
+            }
+
+            $conexion->commit();
+
+            // Limpiar carrito
+            $_SESSION['carrito'] = [];
+            $_SESSION['ultimo_pedido'] = $numero_pedido;
+
+            // Guardar para MP si corresponde
+            $_SESSION['pedido_pendiente_pago'] = [
+                'numero_pedido' => $numero_pedido,
+                'id_pedido'     => $id_pedido,
+                'total'         => $total,
+            ];
+
+            // Redirigir según método de pago
+            if ($metodo_pago === 'mercadopago') {
+                header("Location: pago.php");
+            } else {
+                header("Location: confirmacion.php?pedido=$numero_pedido");
+            }
+            exit;
+        } catch (Exception $e) {
+            $conexion->rollback();
+            $error = 'Uno o más productos de tu carrito ya no tienen stock suficiente. Revisá tu carrito e intentá de nuevo.';
+            error_log("Error al crear pedido: " . $e->getMessage());
         }
-
-        // Limpiar carrito
-        $_SESSION['carrito'] = [];
-        $_SESSION['ultimo_pedido'] = $numero_pedido;
-
-        // Guardar para MP si corresponde
-        $_SESSION['pedido_pendiente_pago'] = [
-            'numero_pedido' => $numero_pedido,
-            'id_pedido'     => $id_pedido,
-            'total'         => $total,
-        ];
-
-        // Redirigir según método de pago
-        if ($metodo_pago === 'mercadopago') {
-            header("Location: pago.php");
-        } else {
-            header("Location: confirmacion.php?pedido=$numero_pedido");
-        }
-        exit;
     }
 }
 

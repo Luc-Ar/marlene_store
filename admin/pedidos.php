@@ -29,7 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_pedido']) && !csrf
   $id_pedido    = (int)$_POST['id_pedido'];
   $nuevo_estado = trim($_POST['nuevo_estado']);
 
-  $pedidoRepo->actualizarEstado($id_pedido, $nuevo_estado);
+  $resultado = $pedidoRepo->cambiarEstado($id_pedido, $nuevo_estado);
+
+  if (!$resultado['ok']) {
+    header('Location: pedidos.php?error=' . urlencode($resultado['error']));
+    exit;
+  }
 
   // Email al cliente
   require_once __DIR__ . '/../includes/emails.php';

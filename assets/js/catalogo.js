@@ -6,12 +6,19 @@ const WA_NUMBER = '5493704097831';
 let carrito = JSON.parse(localStorage.getItem('marlene_carrito') || '[]');
 
 // ─── Agregar producto al carrito ───
-function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio) {
+function agregarAlCarrito(btn, nombre, imagen, subcategoria, precio, stock) {
   const existente = carrito.find(i => i.nombre === nombre);
+  const cantidadActual = existente ? existente.cantidad : 0;
+
+  if (stock !== undefined && cantidadActual + 1 > stock) {
+    alert(`Solo quedan ${stock} unidad(es) disponible(s) de este producto.`);
+    return;
+  }
+
   if (existente) {
     existente.cantidad++;
   } else {
-    carrito.push({ nombre, imagen, subcategoria, cantidad: 1, precio });
+    carrito.push({ nombre, imagen, subcategoria, cantidad: 1, precio, stock });
   }
   localStorage.setItem('marlene_carrito', JSON.stringify(carrito));
   actualizarCarrito();
@@ -80,8 +87,15 @@ function actualizarCarrito() {
 
 // ─── Cambiar cantidad ───
 function cambiarCantidad(index, delta) {
-  carrito[index].cantidad += delta;
-  if (carrito[index].cantidad <= 0) carrito.splice(index, 1);
+  const item = carrito[index];
+
+  if (delta > 0 && item.stock !== undefined && item.cantidad + 1 > item.stock) {
+    alert(`Solo quedan ${item.stock} unidad(es) disponible(s) de este producto.`);
+    return;
+  }
+
+  item.cantidad += delta;
+  if (item.cantidad <= 0) carrito.splice(index, 1);
   localStorage.setItem('marlene_carrito', JSON.stringify(carrito));
   actualizarCarrito();
 }

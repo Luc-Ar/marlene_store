@@ -71,14 +71,21 @@ while ($cat = $cats2->fetch_assoc()):
             <p class="cat-prod-sub"><?= htmlspecialchars($cat['nombre']) ?></p>
             <h3 class="cat-prod-name"><?= htmlspecialchars($p['nombre']) ?></h3>
             <p class="cat-prod-desc"><?= htmlspecialchars($p['descripcion_corta'] ?? '') ?></p>
+            <?php if ((int)$p['stock'] <= 0): ?>
+              <p style="color:#991B1B;font-size:0.7rem;font-weight:700;margin:4px 0;">❌ Sin stock</p>
+            <?php endif; ?>
             <div class="cat-prod-foot">
               <span class="cat-prod-precio">$<?= number_format($p['precio'], 0, ',', '.') ?></span>
               <div style="display:flex;gap:6px;">
                 <a href="producto.php?id=<?= $p['id'] ?>" class="cat-prod-btn-agregar" style="background:transparent;color:var(--marron);border:1px solid var(--marron);">Ver</a>
-                <button class="cat-prod-btn-agregar"
-                  onclick="agregarAlCarrito(this, '<?= addslashes($p['nombre']) ?>', '<?= $p['imagen_principal'] ?>', '<?= addslashes($cat['nombre']) ?>', <?= $p['precio'] ?>)">
-                  + Agregar
-                </button>
+                <?php if ((int)$p['stock'] > 0): ?>
+                  <button class="cat-prod-btn-agregar"
+                    onclick="agregarAlCarrito(this, <?= htmlspecialchars(json_encode($p['nombre']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($p['imagen_principal']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($cat['nombre']), ENT_QUOTES) ?>, <?= (float)$p['precio'] ?>, <?= (int)$p['stock'] ?>)">
+                    + Agregar
+                  </button>
+                <?php else: ?>
+                  <button class="cat-prod-btn-agregar" disabled style="opacity:0.5;cursor:not-allowed;">Sin stock</button>
+                <?php endif; ?>
               </div>
             </div>
           </div>

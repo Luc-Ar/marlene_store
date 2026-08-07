@@ -299,7 +299,8 @@ require_once __DIR__ . '/includes/header.php';
         <!-- Acciones -->
         <div class="prod-acciones">
             <?php if ($stock > 0): ?>
-                <button class="btn-carrito" onclick="agregarAlCarrito(this, '<?= addslashes($producto['nombre']) ?>', '<?= $producto['imagen_principal'] ?>', '<?= addslashes($producto['subcategoria'] ?? '') ?>', <?= $producto['precio'] ?>)">
+                <button class="btn-carrito"
+                    onclick="agregarAlCarrito(this, <?= htmlspecialchars(json_encode($producto['nombre']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($producto['imagen_principal']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($producto['subcategoria'] ?? ''), ENT_QUOTES) ?>, <?= (float)$producto['precio'] ?>)">
                     🛒 Agregar al carrito
                 </button>
             <?php else: ?>

@@ -17,10 +17,36 @@ if (!csrfValidarGet()) {
 }
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
 if ($id > 0) {
-    $stmt = $conexion->prepare("UPDATE categorias SET activo = NOT activo WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
+    // Averiguamos el estado actual para saber si esto es una
+    // activación o una desactivación.
+    $check = $conexion->prepare("SELECT activo FROM categorias WHERE id = ?");
+    $check->bind_param('i', $id);
+    $check->execute();
+    $cat = $check->get_result()->fetch_assoc();
+
+    if ($cat) {
+        $vaAQuedarInactiva = (int)$cat['activo'] === 1;
+
+        if ($vaAQuedarInactiva) {
+            // Solo chequeamos productos asociados cuando se está
+            // desactivando. Activar una categoría nunca es riesgoso.
+            $checkProd = $conexion->prepare("SELECT COUNT(*) as total FROM productos WHERE categoria = ?");
+            $checkProd->bind_param('i', $id);
+            $checkProd->execute();
+            $fila = $checkProd->get_result()->fetch_assoc();
+
+            if ($fila['total'] > 0) {
+                header('Location: /admin/categorias.php?error=tiene_productos&cantidad=' . $fila['total']);
+                exit;
+            }
+        }
+
+        $stmt = $conexion->prepare("UPDATE categorias SET activo = NOT activo WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+    }
 }
 
 header('Location: /admin/categorias.php');

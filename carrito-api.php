@@ -107,27 +107,39 @@ switch ($accion) {
         $_SESSION['carrito'] = [];
         foreach ($items as $item) {
             $id = (int)($item['id'] ?? 0);
-            // Si no tiene ID buscar por nombre
-            if (!$id && isset($item['nombre'])) {
-                $stmt = $conexion->prepare("SELECT id, stock, precio FROM productos WHERE nombre = ? AND activo = 1 LIMIT 1");
-                $stmt->bind_param("s", $item['nombre']);
-                $stmt->execute();
-                $prod = $stmt->get_result()->fetch_assoc();
-                if ($prod) $id = $prod['id'];
+            $cantidad = max(1, (int)($item['cantidad'] ?? 1));
+
+            // Buscamos el producto SIEMPRE en la base de datos — nunca
+            // confiamos en el precio o el stock que mande el navegador,
+            // solo usamos el id/nombre para identificar QUÉ producto es.
+            if ($id > 0) {
+                $stmt = $conexion->prepare("SELECT id, nombre, precio, imagen_principal, stock FROM productos WHERE id = ? AND activo = 1");
+                $stmt->bind_param("i", $id);
+            } else {
+                $nombre = trim($item['nombre'] ?? '');
+                if (!$nombre) continue;
+                $stmt = $conexion->prepare("SELECT id, nombre, precio, imagen_principal, stock FROM productos WHERE nombre = ? AND activo = 1 LIMIT 1");
+                $stmt->bind_param("s", $nombre);
             }
-            if ($id) {
-                $_SESSION['carrito'][$id] = [
-                    'id'       => $id,
-                    'nombre'   => $item['nombre'],
-                    'precio'   => (float)$item['precio'],
-                    'imagen'   => $item['imagen'],
-                    'cantidad' => (int)$item['cantidad'],
-                    'stock'    => (int)($prod['stock'] ?? 99),
-                ];
-            }
+            $stmt->execute();
+            $prod = $stmt->get_result()->fetch_assoc();
+
+            // Si el producto ya no existe o está inactivo, lo salteamos.
+            if (!$prod) continue;
+
+            $cantidadFinal = min($cantidad, max(0, (int)$prod['stock']));
+            if ($cantidadFinal <= 0) continue; // sin stock, no entra
+
+            $_SESSION['carrito'][$prod['id']] = [
+                'id'       => (int)$prod['id'],
+                'nombre'   => $prod['nombre'],
+                'precio'   => (float)$prod['precio'],
+                'imagen'   => $prod['imagen_principal'],
+                'cantidad' => $cantidadFinal,
+                'stock'    => (int)$prod['stock'],
+            ];
         }
         echo json_encode(['ok' => true, 'items' => count($_SESSION['carrito'])]);
         break;
-    default:
         echo json_encode(['ok' => false, 'error' => 'Acción no válida']);
 }

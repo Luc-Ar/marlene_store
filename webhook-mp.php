@@ -32,7 +32,6 @@ if (isset($data['type']) && $data['type'] === 'payment') {
         $status  = $payment->status;
 
         $conexion = Database::getConexion();
-
         $nuevo_estado = match ($status) {
             'approved' => 'confirmado',
             'pending'  => 'pendiente',
@@ -40,9 +39,20 @@ if (isset($data['type']) && $data['type'] === 'payment') {
             default    => 'pendiente',
         };
 
-        $stmt = $conexion->prepare("UPDATE pedidos SET estado = ? WHERE numero_pedido = ?");
-        $stmt->bind_param("ss", $nuevo_estado, $ext_ref);
-        $stmt->execute();
+        $stmtPedido = $conexion->prepare("SELECT id FROM pedidos WHERE numero_pedido = ? LIMIT 1");
+        $stmtPedido->bind_param("s", $ext_ref);
+        $stmtPedido->execute();
+        $pedidoActual = $stmtPedido->get_result()->fetch_assoc();
+
+        if ($pedidoActual) {
+            require_once __DIR__ . '/models/PedidoRepository.php';
+            $pedidoRepo = new PedidoRepository($conexion);
+            $resultado = $pedidoRepo->cambiarEstado($pedidoActual['id'], $nuevo_estado);
+
+            if (!$resultado['ok']) {
+                error_log("Webhook MP: error al cambiar estado del pedido $ext_ref — " . $resultado['error']);
+            }
+        }
 
         error_log("Webhook MP: pedido $ext_ref → $nuevo_estado");
     } catch (Exception $e) {

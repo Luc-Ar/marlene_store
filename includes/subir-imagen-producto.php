@@ -1,12 +1,14 @@
 <?php
 
 /**
- * Procesa la subida de una imagen de producto.
+ * Procesa la subida de una imagen de producto y la convierte a WebP
+ * automáticamente (confirmado que este hosting soporta WebP vía GD,
+ * pero no AVIF — ver check-gd.php, ya borrado del servidor).
  *
  * @param array  $archivo        El array de $_FILES['imagen']
  * @param string $carpetaDestino Ruta absoluta (con __DIR__) a assets/imagenes/
  * @return array{ok: bool, path: ?string, error: ?string}
- *         'path' es la ruta relativa a guardar en la DB (ej: "assets/imagenes/prod_xxx.jpg")
+ *         'path' es la ruta relativa a guardar en la DB (ej: "assets/imagenes/prod_xxx.webp")
  */
 function procesarImagenProducto(array $archivo, string $carpetaDestino): array
 {
@@ -37,12 +39,63 @@ function procesarImagenProducto(array $archivo, string $carpetaDestino): array
         return ['ok' => false, 'path' => null, 'error' => 'El archivo no es una imagen válida.'];
     }
 
-    $nombreFinal = 'prod_' . time() . '_' . uniqid() . '.' . $ext;
-    $rutaCompleta = rtrim($carpetaDestino, '/') . '/' . $nombreFinal;
+    $nombreBase = 'prod_' . time() . '_' . uniqid();
+    $nombreOriginal = $nombreBase . '.' . $ext;
+    $rutaOriginal = rtrim($carpetaDestino, '/') . '/' . $nombreOriginal;
 
-    if (!move_uploaded_file($archivo['tmp_name'], $rutaCompleta)) {
+    if (!move_uploaded_file($archivo['tmp_name'], $rutaOriginal)) {
         return ['ok' => false, 'path' => null, 'error' => 'No se pudo guardar la imagen en el servidor.'];
     }
 
-    return ['ok' => true, 'path' => 'assets/imagenes/' . $nombreFinal, 'error' => null];
+    // Si ya es WebP o es AVIF (que GD no puede tocar en este servidor),
+    // no hay nada que convertir — se guarda tal cual.
+    if (in_array($ext, ['webp', 'avif'])) {
+        return ['ok' => true, 'path' => 'assets/imagenes/' . $nombreOriginal, 'error' => null];
+    }
+
+    $rutaWebp = rtrim($carpetaDestino, '/') . '/' . $nombreBase . '.webp';
+    $convertido = convertirAWebp($rutaOriginal, $ext, $rutaWebp);
+
+    if ($convertido) {
+        // La conversión salió bien: borramos el original (jpg/png) para
+        // no duplicar espacio en disco, y nos quedamos con el WebP.
+        @unlink($rutaOriginal);
+        return ['ok' => true, 'path' => 'assets/imagenes/' . $nombreBase . '.webp', 'error' => null];
+    }
+
+    // Si por algún motivo la conversión falla, no rompemos la subida:
+    // nos quedamos con el archivo original tal cual se subió.
+    return ['ok' => true, 'path' => 'assets/imagenes/' . $nombreOriginal, 'error' => null];
+}
+
+/**
+ * Convierte una imagen (jpg/png) a WebP usando GD.
+ * Devuelve true si pudo convertir y guardar, false si no.
+ */
+function convertirAWebp(string $rutaOrigen, string $extOrigen, string $rutaDestino): bool
+{
+    if (!function_exists('imagewebp')) {
+        return false;
+    }
+
+    $imagen = match ($extOrigen) {
+        'jpg', 'jpeg' => @imagecreatefromjpeg($rutaOrigen),
+        'png' => @imagecreatefrompng($rutaOrigen),
+        default => false,
+    };
+
+    if (!$imagen) {
+        return false;
+    }
+
+    // Los PNG pueden tener transparencia — la preservamos al convertir.
+    imagepalettetotruecolor($imagen);
+    imagealphablending($imagen, true);
+    imagesavealpha($imagen, true);
+
+    // Calidad 82: buen equilibrio entre peso de archivo y nitidez visual.
+    $resultado = imagewebp($imagen, $rutaDestino, 82);
+    imagedestroy($imagen);
+
+    return $resultado;
 }

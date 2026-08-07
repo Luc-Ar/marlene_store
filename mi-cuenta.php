@@ -1,9 +1,9 @@
 <?php
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
+
 session_start();
 require_once __DIR__ . '/includes/error-handler.php';
 require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 if (!isset($_SESSION['cliente_id'])) {
     header('Location: /login-cliente.php?redirect=mi-cuenta.php');
@@ -72,7 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nueva_direccion'])) {
 }
 
 // Eliminar dirección
-if (isset($_GET['eliminar_direccion'])) {
+// Eliminar dirección
+if (isset($_GET['eliminar_direccion']) && !csrfValidarGet()) {
+    header('Location: /mi-cuenta.php?tab=direcciones&error=csrf');
+    exit;
+} elseif (isset($_GET['eliminar_direccion'])) {
     $id_dir = (int)$_GET['eliminar_direccion'];
 
     // Verificar si tiene pedidos asociados
@@ -469,8 +473,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <p style="font-size:0.75rem;color:#bbb;margin-top:4px;"><?= htmlspecialchars($dir['descripcion_adicional']) ?></p>
                                 <?php endif; ?>
                             </div>
-                            <a href="?eliminar_direccion=<?= $dir['id'] ?>"
-                                onclick="return confirm('¿Eliminar esta dirección?')"
+                            <a href="?eliminar_direccion=<?= $dir['id'] ?>&csrf_token=<?= urlencode(csrfToken()) ?>" onclick="return confirm('¿Eliminar esta dirección?')"
                                 style="color:#DC2626;font-size:0.7rem;font-family:'Montserrat',sans-serif;text-decoration:none;white-space:nowrap;">
                                 🗑 Eliminar
                             </a>

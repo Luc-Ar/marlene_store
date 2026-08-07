@@ -26,6 +26,24 @@ function csrfField(): string
 }
 
 /**
+ * Valida el token recibido por POST contra el de la sesión.
+ * Devuelve true si es válido, false si no.
+ * hash_equals() compara de forma segura contra "timing attacks"
+ * (que alguien adivine el token midiendo cuánto tarda la comparación).
+ */
+function csrfValidar(): bool
+{
+    $tokenRecibido = $_POST['csrf_token'] ?? '';
+    $tokenSesion    = $_SESSION['csrf_token'] ?? '';
+
+    if (empty($tokenSesion) || empty($tokenRecibido)) {
+        return false;
+    }
+
+    return hash_equals($tokenSesion, $tokenRecibido);
+}
+
+/**
  * Valida el token CSRF cuando viene por GET (para links de acción
  * como "Eliminar" o "Activar", que no son formularios).
  */
