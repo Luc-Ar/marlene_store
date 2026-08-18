@@ -99,16 +99,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
                 $total += $item['precio'] * $item['cantidad'];
                 $peso_total += ($item['peso'] ?? 0) * $item['cantidad'];
             }
+            $costo_envio_final = 0; // Fijo por ahora, igual que arriba
+            $total += $costo_envio_final;
 
             // Generar número de pedido
             $numero_pedido = 'PED-' . strtoupper(uniqid());
 
             // Insertar pedido
             $stmt = $conexion->prepare("
-                INSERT INTO pedidos (id_cliente, numero_pedido, estado, total, peso_total, metodo_pago, notas, id_direccion)
-                VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?)
+                INSERT INTO pedidos (id_cliente, numero_pedido, estado, total, costo_envio, peso_total, metodo_pago, notas, id_direccion)
+                VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->bind_param("isddssi", $id_cliente, $numero_pedido, $total, $peso_total, $metodo_pago, $notas, $id_direccion);
+            $stmt->bind_param("isdddssi", $id_cliente, $numero_pedido, $total, $costo_envio_final, $peso_total, $metodo_pago, $notas, $id_direccion);
             $stmt->execute();
             $id_pedido = $conexion->insert_id;
 
@@ -168,7 +170,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
 
 // Totales para mostrar
 $items    = array_values($_SESSION['carrito'] ?? []);
-$total    = array_sum(array_map(fn($i) => $i['precio'] * $i['cantidad'], $items));
+$subtotal = array_sum(array_map(fn($i) => $i['precio'] * $i['cantidad'], $items));
+$costo_envio = 0; // Fijo por ahora — acá va a ir el cálculo real cuando conectemos MiCorreo
+$total    = $subtotal + $costo_envio;
 $cantidad = array_sum(array_column($items, 'cantidad'));
 
 // Variables para header.php
@@ -478,7 +482,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="form-group">
                         <label>Código Postal</label>
                         <input type="text" name="codigo_postal" id="input-cp-checkout"
-                            placeholder="Se completa automático"
+                            placeholder="Elegí tu localidad primero"
                             value="<?= htmlspecialchars($_POST['codigo_postal'] ?? '') ?>">
                         <span id="cp-status"
                             style="font-size:0.65rem;color:#999;margin-top:4px;display:block;"></span>
@@ -543,7 +547,14 @@ require_once __DIR__ . '/includes/header.php';
                 </span>
             </div>
         <?php endforeach; ?>
-
+        <div class="resumen-linea" style="display:flex;justify-content:space-between;font-size:0.85rem;color:#666;margin:8px 0;">
+            <span>Subtotal</span>
+            <span>$<?= number_format($subtotal, 0, ',', '.') ?></span>
+        </div>
+        <div class="resumen-linea" style="display:flex;justify-content:space-between;font-size:0.85rem;color:#666;margin:8px 0;">
+            <span>Costo de envío</span>
+            <span><?= $costo_envio > 0 ? '$' . number_format($costo_envio, 0, ',', '.') : 'A confirmar' ?></span>
+        </div>
         <div class="resumen-total">
             <span>Total</span>
             <strong>$<?= number_format($total, 0, ',', '.') ?></strong>
@@ -618,27 +629,53 @@ require_once __DIR__ . '/includes/header.php';
                 `;
         }
     }
-
     async function buscarCPporLocalidad() {
+        const selectProv = document.getElementById('select-provincia-checkout');
+        const provincia = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
         const localidad = document.getElementById('select-localidad-checkout')?.value;
         const inputCP = document.getElementById('input-cp-checkout');
         const cpStatus = document.getElementById('cp-status');
+
+        // Si había un desplegable de opciones de una búsqueda anterior, lo sacamos
+        const selectViejo = document.getElementById('select-cp-opciones');
+        if (selectViejo) selectViejo.remove();
+
         if (!localidad) return;
         cpStatus.textContent = '⏳ Buscando código postal...';
         cpStatus.style.color = '#C9A96E';
+
         try {
-            const res = await fetch(`https://api.zippopotam.us/ar/${encodeURIComponent(localidad)}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data['post code']) {
-                    inputCP.value = data['post code'];
-                    cpStatus.textContent = '✓ Código postal encontrado';
-                    cpStatus.style.color = '#16A34A';
-                    return;
-                }
+            const res = await fetch(`/buscar-cp.php?provincia=${encodeURIComponent(provincia)}&localidad=${encodeURIComponent(localidad)}`);
+            const data = await res.json();
+
+            if (!data.ok || data.cps.length === 0) {
+                inputCP.value = '';
+                cpStatus.textContent = 'No encontramos el código postal — escribilo manualmente';
+                cpStatus.style.color = '#999';
+                return;
             }
-            cpStatus.textContent = 'Escribí el código postal si lo sabés';
-            cpStatus.style.color = '#999';
+
+            if (data.cps.length === 1) {
+                inputCP.value = data.cps[0];
+                cpStatus.textContent = '✓ Código postal encontrado (podés corregirlo si no es el tuyo)';
+                cpStatus.style.color = '#16A34A';
+                return;
+            }
+
+            // Varias opciones: mostramos un desplegable para elegir
+            inputCP.value = '';
+            cpStatus.textContent = `Esta localidad tiene ${data.cps.length} códigos postales — elegí el tuyo:`;
+            cpStatus.style.color = '#C9A96E';
+
+            const select = document.createElement('select');
+            select.id = 'select-cp-opciones';
+            select.style.cssText = 'margin-top:6px;padding:10px 14px;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;font-family:"Montserrat",sans-serif;font-size:0.85rem;width:100%;';
+            select.innerHTML = '<option value="">— Elegí tu código postal —</option>' +
+                data.cps.map(cp => `<option value="${cp}">${cp}</option>`).join('');
+            select.addEventListener('change', () => {
+                inputCP.value = select.value;
+            });
+            inputCP.insertAdjacentElement('afterend', select);
         } catch (e) {
             cpStatus.textContent = 'Escribí el código postal manualmente';
             cpStatus.style.color = '#999';

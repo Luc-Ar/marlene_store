@@ -12,6 +12,19 @@ require_once __DIR__ . '/../includes/csrf.php';
 $db = Database::getConexion();
 $pedidoRepo = new PedidoRepository($db);
 
+// Auto-expirar pedidos de MercadoPago que quedaron "pendiente" más de
+// 1 hora sin confirmarse — libera el stock que habían reservado.
+$stmtExpirar = $db->prepare("
+    SELECT id FROM pedidos
+    WHERE estado = 'pendiente'
+      AND metodo_pago = 'mercadopago'
+      AND fecha_pedido < DATE_SUB(NOW(), INTERVAL 1 HOUR)
+");
+$stmtExpirar->execute();
+foreach ($stmtExpirar->get_result()->fetch_all(MYSQLI_ASSOC) as $pe) {
+  $pedidoRepo->cambiarEstado($pe['id'], 'expirado');
+}
+
 $colores = [
   'pendiente'      => '#E67E22',
   'confirmado'     => '#27AE60',
