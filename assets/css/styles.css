@@ -1426,9 +1426,11 @@ footer {
 .nav-cuenta-dropdown {
   display: none;
   position: absolute;
-  top: calc(100% + 8px);
+  top: 100%;
   right: 0;
-  background: white;
+  padding-top: 8px;
+  margin-top: 0;
+  background: transparent;
   border: 1px solid rgba(200, 152, 154, 0.2);
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(92, 61, 62, 0.1);
@@ -1437,13 +1439,14 @@ footer {
   overflow: hidden;
 }
 
-.nav-cuenta-wrap:hover .nav-cuenta-dropdown {
+.nav-cuenta-wrap.abierto .nav-cuenta-dropdown {
   display: block;
 }
 
 .nav-cuenta-dropdown a {
   display: block;
   padding: 12px 16px;
+  background: white;
   font-family: 'Montserrat', sans-serif;
   font-size: 0.65rem;
   font-weight: 600;
