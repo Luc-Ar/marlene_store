@@ -3,3 +3,4 @@ config/Database.php
 *.log
 vendor/
 .env.save
+.htaccess
