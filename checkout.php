@@ -27,6 +27,21 @@ if (isset($_SESSION['cliente_id'])) {
     $stmt->execute();
     $cliente_logueado = $stmt->get_result()->fetch_assoc();
 }
+// Direcciones guardadas del cliente (solo si está logueado)
+$direcciones_guardadas = [];
+if ($cliente_logueado) {
+    $stmt = $conexion->prepare("
+        SELECT d.*, l.nombre as localidad_nombre, p.nombre as provincia_nombre, p.id as id_provincia
+        FROM direcciones d
+        LEFT JOIN localidades l ON d.id_localidad = l.id
+        LEFT JOIN provincias p ON l.id_provincia = p.id
+        WHERE d.id_cliente = ? AND (d.activo = 1 OR d.activo IS NULL)
+        ORDER BY d.principal DESC, d.fecha_creacion DESC
+    ");
+    $stmt->bind_param("i", $cliente_logueado['id']);
+    $stmt->execute();
+    $direcciones_guardadas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
 
 // ─── PROCESAR FORMULARIO ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
@@ -36,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
     $apellido    = trim($_POST['apellido'] ?? '');
     $email       = trim($_POST['email'] ?? '');
     $telefono    = trim($_POST['telefono'] ?? '');
+    $dni         = trim($_POST['dni'] ?? '');
     $calle       = trim($_POST['calle'] ?? '');
     $altura      = (int)($_POST['altura'] ?? 0);
     $cp          = trim($_POST['codigo_postal'] ?? '');
@@ -44,10 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
     $notas       = trim($_POST['notas'] ?? '');
     $metodo_pago = trim($_POST['metodo_pago'] ?? 'transferencia');
 
-    if (!$nombre || !$apellido || !$email || !$calle || !$localidad) {
+    if (!$nombre || !$apellido || !$email || !$telefono || !$dni || !$calle || !$localidad) {
         $error = 'Por favor completá todos los campos obligatorios.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'El email no es válido.';
+    } elseif (!preg_match('/^\d{7,8}$/', $dni)) {
+        $error = 'El DNI tiene que tener 7 u 8 números, sin puntos.';
+    } elseif (!preg_match('/^\d{8,15}$/', preg_replace('/[\s\-]/', '', $telefono))) {
+        $error = 'El teléfono no parece válido.';
     } else {
         // Buscar o crear cliente
         if (isset($_SESSION['cliente_id'])) {
@@ -60,16 +80,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
             if ($cliente) {
                 $id_cliente = $cliente['id'];
             } else {
-                $stmt = $conexion->prepare("INSERT INTO clientes (nombre, apellido, email, telefono) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("ssss", $nombre, $apellido, $email, $telefono);
+                $stmt = $conexion->prepare("INSERT INTO clientes (nombre, apellido, email, telefono, dni) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssss", $nombre, $apellido, $email, $telefono, $dni);
                 $stmt->execute();
                 $id_cliente = $conexion->insert_id;
             }
         }
 
-        // Buscar o crear localidad
+        // Dirección: ¿usamos una guardada, o creamos una nueva?
+        $id_direccion_elegida = (int)($_POST['id_direccion_guardada'] ?? 0);
+        $usar_direccion_guardada = false;
+
+        if ($id_direccion_elegida > 0 && $cliente_logueado) {
+            // Verificamos que esa dirección sea realmente del cliente
+            // logueado — nunca confiar en un id que venga del navegador.
+            $stmtVerif = $conexion->prepare("SELECT id FROM direcciones WHERE id = ? AND id_cliente = ? AND (activo = 1 OR activo IS NULL)");
+            $stmtVerif->bind_param("ii", $id_direccion_elegida, $cliente_logueado['id']);
+            $stmtVerif->execute();
+            if ($stmtVerif->get_result()->fetch_assoc()) {
+                $usar_direccion_guardada = true;
+            }
+        }
+
         $id_localidad = null;
-        if ($localidad && $id_provincia) {
+        if (!$usar_direccion_guardada && $localidad && $id_provincia) {
             $stmt = $conexion->prepare("SELECT id FROM localidades WHERE nombre = ? AND id_provincia = ? LIMIT 1");
             $stmt->bind_param("si", $localidad, $id_provincia);
             $stmt->execute();
@@ -86,11 +120,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
 
         $conexion->begin_transaction();
         try {
-            // Guardar dirección
-            $stmt = $conexion->prepare("INSERT INTO direcciones (id_cliente, calle, altura, codigo_postal, id_localidad) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("isisi", $id_cliente, $calle, $altura, $cp, $id_localidad);
-            $stmt->execute();
-            $id_direccion = $conexion->insert_id;
+            // Dirección: reusar la guardada, o crear una nueva
+            if ($usar_direccion_guardada) {
+                $id_direccion = $id_direccion_elegida;
+            } else {
+                $descripcion_adicional = trim($_POST['descripcion_adicional'] ?? '');
+                $stmt = $conexion->prepare("INSERT INTO direcciones (id_cliente, calle, altura, codigo_postal, id_localidad, descripcion_adicional) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("isissi", $id_cliente, $calle, $altura, $cp, $id_localidad, $descripcion_adicional);
+                $stmt->execute();
+                $id_direccion = $conexion->insert_id;
+
+                // Si es la primera dirección del cliente, la marcamos
+                // como principal automáticamente.
+                if ($cliente_logueado) {
+                    $stmtCheck = $conexion->prepare("SELECT COUNT(*) as total FROM direcciones WHERE id_cliente = ? AND activo = 1");
+                    $stmtCheck->bind_param("i", $id_cliente);
+                    $stmtCheck->execute();
+                    $totalDirecciones = $stmtCheck->get_result()->fetch_assoc()['total'];
+                    if ($totalDirecciones <= 1) {
+                        $stmtPrincipal = $conexion->prepare("UPDATE direcciones SET principal = 1 WHERE id = ?");
+                        $stmtPrincipal->bind_param("i", $id_direccion);
+                        $stmtPrincipal->execute();
+                    }
+                }
+            }
 
             // Calcular totales
             $total = 0;
@@ -433,9 +486,15 @@ require_once __DIR__ . '/includes/header.php';
                             value="<?= htmlspecialchars($_POST['email'] ?? $cliente_logueado['email'] ?? '') ?>">
                     </div>
                     <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="tel" name="telefono"
+                        <label>Teléfono *</label>
+                        <input type="tel" name="telefono" required
                             value="<?= htmlspecialchars($_POST['telefono'] ?? $cliente_logueado['telefono'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>DNI *</label>
+                        <input type="text" name="dni" required inputmode="numeric" maxlength="8"
+                            placeholder="Sin puntos"
+                            value="<?= htmlspecialchars($_POST['dni'] ?? $cliente_logueado['dni'] ?? '') ?>">
                     </div>
                 </div>
             </div>
@@ -443,10 +502,41 @@ require_once __DIR__ . '/includes/header.php';
             <!-- Dirección de envío -->
             <div class="checkout-seccion">
                 <h3>📦 Dirección de envío</h3>
-                <div class="form-grid">
+
+                <?php if (!empty($direcciones_guardadas)): ?>
+                    <div id="direcciones-guardadas-lista" style="margin-bottom:20px;">
+                        <?php foreach ($direcciones_guardadas as $i => $dir): ?>
+                            <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border:1.5px solid <?= $dir['principal'] ? 'var(--dorado)' : 'rgba(200,152,154,0.3)' ?>;border-radius:8px;margin-bottom:10px;cursor:pointer;">
+                                <input type="radio" name="opcion_direccion" value="<?= $dir['id'] ?>"
+                                    <?= $i === 0 ? 'checked' : '' ?>
+                                    onchange="seleccionarDireccionGuardada(<?= $dir['id'] ?>)"
+                                    style="margin-top:4px;">
+                                <div>
+                                    <?php if ($dir['principal']): ?>
+                                        <span style="font-size:0.6rem;font-weight:700;color:var(--dorado);text-transform:uppercase;letter-spacing:1px;">★ Principal</span><br>
+                                    <?php endif; ?>
+                                    <strong><?= htmlspecialchars($dir['calle']) ?> <?= htmlspecialchars($dir['altura']) ?></strong><br>
+                                    <span style="font-size:0.8rem;color:#666;">
+                                        <?= htmlspecialchars($dir['localidad_nombre'] ?? '') ?>, <?= htmlspecialchars($dir['provincia_nombre'] ?? '') ?> (CP <?= htmlspecialchars($dir['codigo_postal']) ?>)
+                                        <?= !empty($dir['descripcion_adicional']) ? ' — ' . htmlspecialchars($dir['descripcion_adicional']) : '' ?>
+                                    </span>
+                                </div>
+                            </label>
+                        <?php endforeach; ?>
+
+                        <label style="display:flex;align-items:center;gap:12px;padding:14px;border:1.5px dashed rgba(200,152,154,0.4);border-radius:8px;cursor:pointer;">
+                            <input type="radio" name="opcion_direccion" value="nueva" onchange="seleccionarDireccionNueva()">
+                            <span>+ Cargar una dirección nueva</span>
+                        </label>
+                    </div>
+
+                    <input type="hidden" name="id_direccion_guardada" id="input-id-direccion-guardada" value="<?= $direcciones_guardadas[0]['id'] ?>">
+                <?php endif; ?>
+
+                <div class="form-grid" id="campos-direccion-manual" style="<?= !empty($direcciones_guardadas) ? 'display:none;' : '' ?>">
                     <div class="form-group">
                         <label>Calle *</label>
-                        <input type="text" name="calle" required
+                        <input type="text" name="calle" <?= empty($direcciones_guardadas) ? 'required' : '' ?>
                             value="<?= htmlspecialchars($_POST['calle'] ?? '') ?>">
                     </div>
                     <div class="form-group">
@@ -456,7 +546,7 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                     <div class="form-group full">
                         <label>Provincia *</label>
-                        <select name="id_provincia" id="select-provincia-checkout" required
+                        <select name="id_provincia" id="select-provincia-checkout" <?= empty($direcciones_guardadas) ? 'required' : '' ?>
                             onchange="cargarLocalidadesCheckout()">
                             <option value="">— Seleccioná tu provincia —</option>
                             <?php foreach ($provincias as $prov): ?>
@@ -470,7 +560,7 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                     <div class="form-group full">
                         <label>Localidad *</label>
-                        <select name="localidad" id="select-localidad-checkout" required disabled
+                        <select name="localidad" id="select-localidad-checkout" <?= empty($direcciones_guardadas) ? 'required' : '' ?> disabled
                             onchange="buscarCPporLocalidad()">
                             <option value="">— Primero elegí la provincia —</option>
                         </select>
@@ -628,6 +718,22 @@ require_once __DIR__ . '/includes/header.php';
                         style="padding:12px 14px;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;font-family:'Montserrat',sans-serif;font-size:0.85rem;width:100%;">
                 `;
         }
+    }
+
+    function seleccionarDireccionGuardada(id) {
+        document.getElementById('input-id-direccion-guardada').value = id;
+        const contenedor = document.getElementById('campos-direccion-manual');
+        contenedor.style.display = 'none';
+        contenedor.querySelectorAll('[required]').forEach(el => el.required = false);
+    }
+
+    function seleccionarDireccionNueva() {
+        document.getElementById('input-id-direccion-guardada').value = '';
+        const contenedor = document.getElementById('campos-direccion-manual');
+        contenedor.style.display = '';
+        contenedor.querySelector('[name="calle"]').required = true;
+        contenedor.querySelector('[name="id_provincia"]').required = true;
+        contenedor.querySelector('[name="localidad"]').required = true;
     }
     async function buscarCPporLocalidad() {
         const selectProv = document.getElementById('select-provincia-checkout');

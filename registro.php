@@ -8,8 +8,10 @@ if (isset($_SESSION['cliente_id'])) {
     header('Location: mi-cuenta.php');
     exit;
 }
-
 $error = '';
+$limpiarEmail = false;
+$limpiarDni = false;
+$limpiarTelefono = false;
 $conexion = Database::getConexion();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
@@ -20,12 +22,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
     $password          = $_POST['password'] ?? '';
     $confirmar_password = $_POST['confirmar_password'] ?? '';
 
-    if (!$email || !$confirmar_email || !$password || !$confirmar_password) {
+    $dni = trim($_POST['dni'] ?? '');
+    $telefono = trim($_POST['telefono'] ?? '');
+
+    if (!$email || !$confirmar_email || !$password || !$confirmar_password || !$dni || !$telefono) {
         $error = 'Completá todos los campos.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'El email no es válido.';
+        $limpiarEmail = true;
     } elseif ($email !== $confirmar_email) {
         $error = 'Los dos emails no coinciden.';
+        $limpiarEmail = true;
+    } elseif (!preg_match('/^\d{7,8}$/', $dni)) {
+        $error = 'El DNI tiene que tener 7 u 8 números, sin puntos.';
+        $limpiarDni = true;
+    } elseif (!preg_match('/^\d{8,15}$/', preg_replace('/[\s\-]/', '', $telefono))) {
+        $error = 'El teléfono no parece válido.';
+        $limpiarTelefono = true;
     } elseif ($password !== $confirmar_password) {
         $error = 'Las dos contraseñas no coinciden.';
     } elseif (strlen($password) < 8) {
@@ -41,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
             $error = 'Ya existe una cuenta registrada con ese email.';
         } else {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt2 = $conexion->prepare("INSERT INTO clientes (nombre, apellido, email, password, activo, fecha_registro) VALUES ('', '', ?, ?, 1, NOW())");
-            $stmt2->bind_param("ss", $email, $passwordHash);
+            $stmt2 = $conexion->prepare("INSERT INTO clientes (nombre, apellido, email, password, dni, telefono, activo, fecha_registro) VALUES ('', '', ?, ?, ?, ?, 1, NOW())");
+            $stmt2->bind_param("ssss", $email, $passwordHash, $dni, $telefono);
 
             if ($stmt2->execute()) {
                 $nuevoId = $conexion->insert_id;
@@ -155,11 +168,19 @@ $estilos_extra = '
 .error-msg {
     background: #FEE2E2;
     color: #991B1B;
-    padding: 12px 16px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    margin-bottom: 20px;
+    padding: 16px 20px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 24px;
     text-align: center;
+    border: 2px solid #FCA5A5;
+    animation: shake 0.4s ease;
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
 }
 ';
 
@@ -192,8 +213,20 @@ require_once __DIR__ . '/includes/header.php';
                 <span class="form-hint">Volvé a escribirlo — no se puede pegar.</span>
             </div>
             <div class="form-group">
+                <label>DNI *</label>
+                <input type="text" name="dni" id="dni" required inputmode="numeric" maxlength="8"
+                    placeholder="Sin puntos, ej: 30123456" disabled
+                    value="<?= $limpiarDni ? '' : htmlspecialchars($_POST['dni'] ?? '') ?>">
+            </div>
+            <div class="form-group">
+                <label>Teléfono *</label>
+                <input type="tel" name="telefono" id="telefono" required disabled
+                    placeholder="Ej: 3704123456"
+                    value="<?= $limpiarTelefono ? '' : htmlspecialchars($_POST['telefono'] ?? '') ?>">
+            </div>
+            <div class="form-group">
                 <label>Contraseña *</label>
-                <input type="password" name="password" id="password" required minlength="8">
+                <input type="password" name="password" id="password" required minlength="8" disabled>
                 <span class="form-hint">Mínimo 8 caracteres.</span>
             </div>
             <div class="form-group">
@@ -211,21 +244,85 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-    // Los campos de confirmación se destraban recién cuando el
-    // campo original tiene contenido — así el usuario primero
-    // carga el dato "real" antes de poder confirmarlo.
-    const email = document.getElementById('email');
-    const confirmarEmail = document.getElementById('confirmar_email');
-    const password = document.getElementById('password');
-    const confirmarPassword = document.getElementById('confirmar_password');
+    const campos = {
+        email: document.getElementById('email'),
+        confirmarEmail: document.getElementById('confirmar_email'),
+        dni: document.getElementById('dni'),
+        telefono: document.getElementById('telefono'),
+        password: document.getElementById('password'),
+        confirmarPassword: document.getElementById('confirmar_password'),
+    };
 
-    email.addEventListener('input', () => {
-        confirmarEmail.disabled = email.value.trim() === '';
+    function validarFormatoEmail(v) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+    }
+
+    function validarDni(v) {
+        return /^\d{7,8}$/.test(v.trim());
+    }
+
+    function validarTelefono(v) {
+        return /^\d{8,15}$/.test(v.trim().replace(/[\s\-]/g, ''));
+    }
+
+    function marcarEstado(input, esValido) {
+        input.style.borderColor = input.value.trim() === '' ? '' : (esValido ? '#16A34A' : '#DC2626');
+    }
+
+    // Email → habilita Confirmar email
+    campos.email.addEventListener('input', () => {
+        const valido = validarFormatoEmail(campos.email.value);
+        marcarEstado(campos.email, valido);
+        campos.confirmarEmail.disabled = !valido;
+        if (!valido) {
+            campos.confirmarEmail.value = '';
+            bloquearDesde('dni');
+        }
     });
 
-    password.addEventListener('input', () => {
-        confirmarPassword.disabled = password.value === '';
+    // Confirmar email → habilita DNI (necesita formato válido Y que coincidan)
+    campos.confirmarEmail.addEventListener('input', () => {
+        const coincide = campos.confirmarEmail.value === campos.email.value;
+        const valido = validarFormatoEmail(campos.confirmarEmail.value) && coincide;
+        marcarEstado(campos.confirmarEmail, valido);
+        campos.dni.disabled = !valido;
+        if (!valido) bloquearDesde('telefono');
     });
+
+    // DNI → habilita Teléfono
+    campos.dni.addEventListener('input', () => {
+        const valido = validarDni(campos.dni.value);
+        marcarEstado(campos.dni, valido);
+        campos.telefono.disabled = !valido;
+        if (!valido) bloquearDesde('password');
+    });
+
+    // Teléfono → habilita Contraseña
+    campos.telefono.addEventListener('input', () => {
+        const valido = validarTelefono(campos.telefono.value);
+        marcarEstado(campos.telefono, valido);
+        campos.password.disabled = !valido;
+        if (!valido) {
+            campos.confirmarPassword.disabled = true;
+        }
+    });
+
+    // Contraseña → habilita Confirmar contraseña
+    campos.password.addEventListener('input', () => {
+        campos.confirmarPassword.disabled = campos.password.value === '';
+    });
+
+    // Apaga y vacía todos los campos posteriores a uno que dejó de ser válido
+    function bloquearDesde(idCampo) {
+        const orden = ['dni', 'telefono', 'password', 'confirmarPassword'];
+        const desde = orden.indexOf(idCampo);
+        if (desde === -1) return;
+        for (let i = desde; i < orden.length; i++) {
+            const c = campos[orden[i]];
+            c.disabled = true;
+            if (orden[i] !== 'password') c.value = '';
+        }
+    }
 
     document.body.style.visibility = 'visible';
 </script>

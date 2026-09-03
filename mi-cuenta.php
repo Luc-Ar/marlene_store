@@ -21,26 +21,25 @@ $cliente = $stmt->get_result()->fetch_assoc();
 
 // Pedidos del cliente
 $stmt = $conexion->prepare("
-    SELECT p.id, p.numero_pedido, p.estado, p.total, p.fecha_pedido,
-           COUNT(pi.id) as cant_items
-    FROM pedidos p
-    LEFT JOIN pedido_items pi ON p.id = pi.id_pedido
-    WHERE p.id_cliente = ?
-    GROUP BY p.id
-    ORDER BY p.fecha_pedido DESC
+    SELECT d.*, l.nombre as localidad_nombre, l.id_provincia
+    FROM direcciones d
+    LEFT JOIN localidades l ON d.id_localidad = l.id
+    WHERE d.id_cliente = ?
+    ORDER BY d.principal DESC, d.fecha_creacion DESC
 ");
 $stmt->bind_param("i", $id_cliente);
 $stmt->execute();
 $pedidos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Nueva dirección
+// Nueva dirección o edición de una existente
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nueva_direccion'])) {
-    $calle     = trim($_POST['calle'] ?? '');
-    $altura    = (int)($_POST['altura'] ?? 0);
-    $cp        = trim($_POST['codigo_postal'] ?? '');
+    $id_direccion = (int)($_POST['id_direccion'] ?? 0);
+    $calle = trim($_POST['calle'] ?? '');
+    $altura = (int)($_POST['altura'] ?? 0);
+    $cp = trim($_POST['codigo_postal'] ?? '');
     $localidad = trim($_POST['localidad'] ?? '');
-    $id_prov   = (int)($_POST['id_provincia'] ?? 0);
-    $desc      = trim($_POST['descripcion_adicional'] ?? '');
+    $id_prov = (int)($_POST['id_provincia'] ?? 0);
+    $desc = trim($_POST['descripcion_adicional'] ?? '');
     $principal = isset($_POST['principal']) ? 1 : 0;
 
     if ($calle && $localidad && $id_prov) {
@@ -48,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nueva_direccion'])) {
         $stmt->bind_param("si", $localidad, $id_prov);
         $stmt->execute();
         $loc = $stmt->get_result()->fetch_assoc();
+
         if ($loc) {
             $id_loc = $loc['id'];
         } else {
@@ -63,15 +63,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nueva_direccion'])) {
             $stmt2->execute();
         }
 
-        $stmt = $conexion->prepare("INSERT INTO direcciones (id_cliente, calle, altura, codigo_postal, id_localidad, descripcion_adicional, principal) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isisisi", $id_cliente, $calle, $altura, $cp, $id_loc, $desc, $principal);
+        if ($id_direccion > 0) {
+            // Edición: el WHERE con id_cliente evita que alguien edite una dirección ajena
+            $stmt = $conexion->prepare("UPDATE direcciones SET calle=?, altura=?, codigo_postal=?, id_localidad=?, descripcion_adicional=?, principal=? WHERE id=? AND id_cliente=?");
+            $stmt->bind_param("sisisiii", $calle, $altura, $cp, $id_loc, $desc, $principal, $id_direccion, $id_cliente);
+        } else {
+            $stmt = $conexion->prepare("INSERT INTO direcciones (id_cliente, calle, altura, codigo_postal, id_localidad, descripcion_adicional, principal) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("isisisi", $id_cliente, $calle, $altura, $cp, $id_loc, $desc, $principal);
+        }
         $stmt->execute();
     }
-    header('Location: /mi-cuenta.php?tab=direcciones');
+
+    header('Location: mi-cuenta.php?tab=direcciones');
     exit;
 }
 
-// Eliminar dirección
 // Eliminar dirección
 if (isset($_GET['eliminar_direccion']) && !csrfValidarGet()) {
     header('Location: /mi-cuenta.php?tab=direcciones&error=csrf');
@@ -398,17 +404,18 @@ require_once __DIR__ . '/includes/header.php';
         <!-- Formulario nueva dirección -->
         <div id="form-direccion" style="display:none;margin-bottom:20px;">
             <div class="datos-card">
-                <div class="datos-titulo">📍 Nueva dirección</div>
+                <div class="datos-titulo" id="titulo-form-direccion">📍 Nueva dirección</div>
                 <form method="POST">
                     <input type="hidden" name="nueva_direccion" value="1">
+                    <input type="hidden" name="id_direccion" id="id-direccion-edit" value="">
                     <div class="datos-grid">
                         <div class="dato-item">
                             <label>Calle *</label>
-                            <input type="text" name="calle" required placeholder="Av. San Martín">
+                            <input type="text" name="calle" id="calle-nueva" required placeholder="Av. San Martín">
                         </div>
                         <div class="dato-item">
                             <label>Altura</label>
-                            <input type="number" name="altura" placeholder="1234">
+                            <input type="number" name="altura" id="altura-nueva" placeholder="1234">
                         </div>
                         <div class="dato-item">
                             <label>Provincia *</label>
@@ -423,21 +430,23 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                         <div class="dato-item">
                             <label>Localidad *</label>
-                            <select name="localidad" id="loc-nueva" required disabled>
+                            <select name="localidad" id="loc-nueva" required disabled onchange="buscarCPporLocalidadMiCuenta()">
                                 <option value="">— Primero elegí provincia —</option>
                             </select>
                         </div>
                         <div class="dato-item">
                             <label>Código Postal</label>
-                            <input type="text" name="codigo_postal" id="cp-nueva" placeholder="Se completa automático">
+                            <input type="text" name="codigo_postal" id="cp-nueva" placeholder="Elegí tu localidad primero">
+                            <span id="cp-status-nueva" style="font-size:0.65rem;color:#999;margin-top:4px;display:block;"></span>
                         </div>
                         <div class="dato-item">
                             <label>Descripción adicional</label>
-                            <input type="text" name="descripcion_adicional" placeholder="Piso, depto...">
+                            <input type="text" name="descripcion_adicional" id="desc-nueva" placeholder="Piso, depto...">
                         </div>
                     </div>
+
                     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Montserrat',sans-serif;font-size:0.65rem;color:var(--marron);cursor:pointer;">
-                        <input type="checkbox" name="principal" value="1"> Marcar como dirección principal
+                        <input type="checkbox" name="principal" id="principal-nueva" value="1"> Marcar como dirección principal
                     </label>
                     <div style="display:flex;gap:12px;margin-top:16px;">
                         <button type="submit" class="btn-guardar" style="margin:0;">Guardar</button>
@@ -473,10 +482,25 @@ require_once __DIR__ . '/includes/header.php';
                                     <p style="font-size:0.75rem;color:#bbb;margin-top:4px;"><?= htmlspecialchars($dir['descripcion_adicional']) ?></p>
                                 <?php endif; ?>
                             </div>
-                            <a href="?eliminar_direccion=<?= $dir['id'] ?>&csrf_token=<?= urlencode(csrfToken()) ?>" onclick="return confirm('¿Eliminar esta dirección?')"
-                                style="color:#DC2626;font-size:0.7rem;font-family:'Montserrat',sans-serif;text-decoration:none;white-space:nowrap;">
-                                🗑 Eliminar
-                            </a>
+                            <div style="display:flex;gap:12px;white-space:nowrap;">
+                                <button type="button" class="btn-editar-dir"
+                                    data-id="<?= $dir['id'] ?>"
+                                    data-calle="<?= htmlspecialchars($dir['calle'], ENT_QUOTES) ?>"
+                                    data-altura="<?= htmlspecialchars($dir['altura'] ?? '', ENT_QUOTES) ?>"
+                                    data-cp="<?= htmlspecialchars($dir['codigo_postal'] ?? '', ENT_QUOTES) ?>"
+                                    data-provincia="<?= (int)($dir['id_provincia'] ?? 0) ?>"
+                                    data-localidad="<?= htmlspecialchars($dir['localidad_nombre'] ?? '', ENT_QUOTES) ?>"
+                                    data-desc="<?= htmlspecialchars($dir['descripcion_adicional'] ?? '', ENT_QUOTES) ?>"
+                                    data-principal="<?= (int)$dir['principal'] ?>"
+                                    style="color:var(--dorado);font-size:0.7rem;font-family:'Montserrat',sans-serif;background:none;border:none;cursor:pointer;padding:0;">
+                                    ✏️ Editar
+                                </button>
+                                <a href="?eliminar_direccion=<?= $dir['id'] ?>"
+                                    onclick="return confirm('¿Eliminar esta dirección?')"
+                                    style="color:#DC2626;font-size:0.7rem;font-family:'Montserrat',sans-serif;text-decoration:none;">
+                                    🗑 Eliminar
+                                </a>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -502,8 +526,55 @@ require_once __DIR__ . '/includes/header.php';
 
     function toggleFormDireccion() {
         const form = document.getElementById('form-direccion');
-        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        const abrir = form.style.display === 'none' || form.style.display === '';
+        if (abrir) {
+            // Si se abre desde "+ Nueva dirección", limpiamos cualquier resto de una edición anterior
+            document.getElementById('id-direccion-edit').value = '';
+            document.getElementById('titulo-form-direccion').textContent = '📍 Nueva dirección';
+            document.querySelector('#form-direccion form').reset();
+            document.getElementById('loc-nueva').innerHTML = '<option value="">— Primero elegí provincia —</option>';
+            document.getElementById('loc-nueva').disabled = true;
+        }
+        form.style.display = abrir ? 'block' : 'none';
     }
+
+    function editarDireccion(id, calle, altura, cp, idProvincia, localidad, desc, principal) {
+        document.getElementById('id-direccion-edit').value = id;
+        document.getElementById('calle-nueva').value = calle;
+        document.getElementById('altura-nueva').value = altura;
+        document.getElementById('desc-nueva').value = desc;
+        document.getElementById('principal-nueva').checked = principal == '1';
+        document.getElementById('titulo-form-direccion').textContent = '📍 Editar dirección';
+
+        document.getElementById('prov-nueva').value = idProvincia;
+
+        // Disparamos la carga de localidades de esa provincia y, recién cuando
+        // termine, seleccionamos la localidad guardada y ponemos el CP guardado
+        cargarLocMiCuenta().then(() => {
+            document.getElementById('loc-nueva').value = localidad;
+            document.getElementById('cp-nueva').value = cp;
+        });
+
+        document.getElementById('form-direccion').style.display = 'block';
+        document.getElementById('form-direccion').scrollIntoView({
+            behavior: 'smooth'
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-editar-dir');
+        if (!btn) return;
+        editarDireccion(
+            btn.dataset.id,
+            btn.dataset.calle,
+            btn.dataset.altura,
+            btn.dataset.cp,
+            btn.dataset.provincia,
+            btn.dataset.localidad,
+            btn.dataset.desc,
+            btn.dataset.principal
+        );
+    });
 
     async function cargarLocMiCuenta() {
         const selectProv = document.getElementById('prov-nueva');
@@ -526,20 +597,91 @@ require_once __DIR__ . '/includes/header.php';
                     selectLoc.appendChild(opt);
                 });
                 selectLoc.disabled = false;
-                selectLoc.addEventListener('change', async () => {
-                    const cpInput = document.getElementById('cp-nueva');
-                    try {
-                        const r = await fetch(`https://api.zippopotam.us/ar/${encodeURIComponent(selectLoc.value)}`);
-                        if (r.ok) {
-                            const d = await r.json();
-                            if (d['post code']) cpInput.value = d['post code'];
-                        }
-                    } catch (e) {}
+                selectLoc.addEventListener('change', () => {
+                    buscarCpMiCuenta(nombreProv, selectLoc.value);
                 });
             }
         } catch (e) {
             const parent = selectLoc.closest('.dato-item');
             parent.innerHTML = '<label>Localidad *</label><input type="text" name="localidad" required placeholder="Escribí tu localidad" style="width:100%;padding:10px 14px;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;font-family:\'Montserrat\',sans-serif;">';
+        }
+    }
+    async function buscarCpMiCuenta(provincia, localidad) {
+        const contenedor = document.getElementById('cp-nueva').closest('.dato-item');
+
+        // CABA: la tabla no distingue por barrio, solo tiene un CP genérico
+        // por cada rango. Mejor que el usuario lo escriba a mano.
+        if (provincia === 'Ciudad de Buenos Aires') {
+            contenedor.innerHTML = '<label>Código Postal</label><input type="text" name="codigo_postal" id="cp-nueva" placeholder="Escribí tu código postal (ej: 1225)">';
+            return;
+        }
+
+        contenedor.innerHTML = '<label>Código Postal</label><input type="text" name="codigo_postal" id="cp-nueva" placeholder="Buscando...">';
+
+        try {
+            const res = await fetch(`buscar-cp.php?provincia=${encodeURIComponent(provincia)}&localidad=${encodeURIComponent(localidad)}`);
+            const data = await res.json();
+
+            if (data.ok && data.cps.length === 1) {
+                contenedor.innerHTML = `<label>Código Postal</label><input type="text" name="codigo_postal" id="cp-nueva" value="${data.cps[0]}">`;
+            } else if (data.ok && data.cps.length > 1) {
+                const opciones = data.cps.map(cp => `<option value="${cp}">${cp}</option>`).join('');
+                contenedor.innerHTML = `<label>Código Postal</label><select name="codigo_postal" id="cp-nueva"><option value="">— Elegí tu CP —</option>${opciones}</select>`;
+            } else {
+                contenedor.innerHTML = '<label>Código Postal</label><input type="text" name="codigo_postal" id="cp-nueva" placeholder="No encontramos el CP — escribilo manualmente">';
+            }
+        } catch (e) {
+            contenedor.innerHTML = '<label>Código Postal</label><input type="text" name="codigo_postal" id="cp-nueva" placeholder="Escribí el código postal">';
+        }
+    }
+    async function buscarCPporLocalidadMiCuenta() {
+        const selectProv = document.getElementById('prov-nueva');
+        const provincia = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
+        const localidad = document.getElementById('loc-nueva')?.value;
+        const inputCP = document.getElementById('cp-nueva');
+        const cpStatus = document.getElementById('cp-status-nueva');
+
+        const selectViejo = document.getElementById('select-cp-opciones-nueva');
+        if (selectViejo) selectViejo.remove();
+
+        if (!localidad) return;
+        cpStatus.textContent = '⏳ Buscando código postal...';
+        cpStatus.style.color = '#C9A96E';
+
+        try {
+            const res = await fetch(`/buscar-cp.php?provincia=${encodeURIComponent(provincia)}&localidad=${encodeURIComponent(localidad)}`);
+            const data = await res.json();
+
+            if (!data.ok || data.cps.length === 0) {
+                inputCP.value = '';
+                cpStatus.textContent = 'No encontramos el código postal — escribilo manualmente';
+                cpStatus.style.color = '#999';
+                return;
+            }
+
+            if (data.cps.length === 1) {
+                inputCP.value = data.cps[0];
+                cpStatus.textContent = '✓ Código postal encontrado (podés corregirlo si no es el tuyo)';
+                cpStatus.style.color = '#16A34A';
+                return;
+            }
+
+            inputCP.value = '';
+            cpStatus.textContent = `Esta localidad tiene ${data.cps.length} códigos postales — elegí el tuyo:`;
+            cpStatus.style.color = '#C9A96E';
+
+            const select = document.createElement('select');
+            select.id = 'select-cp-opciones-nueva';
+            select.style.cssText = 'margin-top:6px;padding:10px 14px;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;font-family:"Montserrat",sans-serif;font-size:0.85rem;width:100%;';
+            select.innerHTML = '<option value="">— Elegí tu código postal —</option>' +
+                data.cps.map(cp => `<option value="${cp}">${cp}</option>`).join('');
+            select.addEventListener('change', () => {
+                inputCP.value = select.value;
+            });
+            inputCP.insertAdjacentElement('afterend', select);
+        } catch (e) {
+            cpStatus.textContent = 'Escribí el código postal manualmente';
+            cpStatus.style.color = '#999';
         }
     }
 </script>
