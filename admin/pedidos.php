@@ -503,6 +503,9 @@ $pedidos = $pedidoRepo->listarPedidos($filtros);
     <?php if (isset($_GET['mensaje']) && $_GET['mensaje'] === 'ok'): ?>
       <div class="alerta-ok">✅ Estado del pedido actualizado correctamente.</div>
     <?php endif; ?>
+    <?php if (isset($_GET['error'])): ?>
+      <div class="alerta-ok" style="background:#FEE2E2;color:#991B1B;">⚠️ <?= htmlspecialchars($_GET['error']) ?></div>
+    <?php endif; ?>
 
     <!-- Buscador -->
     <form method="GET" class="search-bar">
@@ -601,6 +604,9 @@ $pedidos = $pedidoRepo->listarPedidos($filtros);
         <?= csrfField() ?>
         <input type="hidden" name="id_pedido" id="in-id">
         <p style="font-size:0.75rem;color:#999;margin-bottom:12px;">Pedido: <strong id="modal-numero"></strong></p>
+        <div id="aviso-cancelado" style="display:none;background:#FEE2E2;color:#991B1B;padding:12px 16px;border-radius:6px;font-size:0.8rem;margin-bottom:12px;">
+          ⚠️ Este pedido ya está en un estado final y no admite más cambios.
+        </div>
         <select name="nuevo_estado" id="sel-estado">
           <?php foreach ($colores as $estado_nombre => $color_hex): ?>
             <option value="<?= $estado_nombre ?>">
@@ -608,17 +614,47 @@ $pedidos = $pedidoRepo->listarPedidos($filtros);
             </option>
           <?php endforeach; ?>
         </select>
-        <button type="submit" class="btn-confirmar">GUARDAR CAMBIOS</button>
+        <button type="submit" class="btn-confirmar" id="btn-confirmar-modal">GUARDAR CAMBIOS</button>
         <button type="button" onclick="cerrarModal()" class="btn-cancelar">Cancelar</button>
       </form>
     </div>
   </div>
 
   <script>
+    // Misma tabla que TRANSICIONES_VALIDAS en PedidoRepository.php —
+    // si se toca una, hay que tocar la otra. Esto solo controla qué
+    // ve el admin; la regla real y definitiva vive en el backend.
+    const TRANSICIONES_VALIDAS = {
+      'pendiente': ['confirmado', 'cancelado', 'expirado'],
+      'confirmado': ['en_preparacion', 'cancelado'],
+      'en_preparacion': ['enviado', 'demorado', 'cancelado'],
+      'demorado': ['en_preparacion', 'enviado', 'cancelado'],
+      'enviado': ['entregado'],
+    };
+
     function abrirModal(id, numero, estado) {
       document.getElementById('in-id').value = id;
       document.getElementById('modal-numero').textContent = '#' + numero;
-      document.getElementById('sel-estado').value = estado;
+
+      const permitidos = TRANSICIONES_VALIDAS[estado] || [];
+      const esTerminal = permitidos.length === 0;
+
+      document.getElementById('aviso-cancelado').style.display = esTerminal ? 'block' : 'none';
+      document.getElementById('sel-estado').style.display = esTerminal ? 'none' : 'block';
+      document.getElementById('btn-confirmar-modal').style.display = esTerminal ? 'none' : 'block';
+
+      if (!esTerminal) {
+        const select = document.getElementById('sel-estado');
+        select.innerHTML = '';
+        permitidos.forEach(opcion => {
+          const el = document.createElement('option');
+          el.value = opcion;
+          el.textContent = opcion.replace('_', ' ');
+          el.style.textTransform = 'capitalize';
+          select.appendChild(el);
+        });
+      }
+
       document.getElementById('modal-overlay').classList.add('abierto');
     }
 

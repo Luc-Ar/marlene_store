@@ -21,11 +21,10 @@ $cliente = $stmt->get_result()->fetch_assoc();
 
 // Pedidos del cliente
 $stmt = $conexion->prepare("
-    SELECT d.*, l.nombre as localidad_nombre, l.id_provincia
-    FROM direcciones d
-    LEFT JOIN localidades l ON d.id_localidad = l.id
-    WHERE d.id_cliente = ?
-    ORDER BY d.principal DESC, d.fecha_creacion DESC
+    SELECT p.*, (SELECT COUNT(*) FROM pedido_items pi WHERE pi.id_pedido = p.id) as cant_items
+    FROM pedidos p
+    WHERE p.id_cliente = ?
+    ORDER BY p.fecha_pedido DESC
 ");
 $stmt->bind_param("i", $id_cliente);
 $stmt->execute();
@@ -77,7 +76,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nueva_direccion'])) {
     header('Location: mi-cuenta.php?tab=direcciones');
     exit;
 }
+// Cancelar pedido (autoservicio del cliente, solo si está en pendiente)
+if (isset($_GET['cancelar_pedido'])) {
+    require_once __DIR__ . '/models/PedidoRepository.php';
+    $id_pedido_cancelar = (int)$_GET['cancelar_pedido'];
 
+    // Verificamos que el pedido sea realmente del cliente logueado
+    $stmtVerif = $conexion->prepare("SELECT id FROM pedidos WHERE id = ? AND id_cliente = ? LIMIT 1");
+    $stmtVerif->bind_param("ii", $id_pedido_cancelar, $id_cliente);
+    $stmtVerif->execute();
+
+    if ($stmtVerif->get_result()->fetch_assoc()) {
+        $pedidoRepo = new PedidoRepository($conexion);
+        $pedidoRepo->cambiarEstado($id_pedido_cancelar, 'cancelado', 'cliente');
+    }
+
+    header('Location: /mi-cuenta.php?tab=pedidos');
+    exit;
+}
 // Eliminar dirección
 if (isset($_GET['eliminar_direccion']) && !csrfValidarGet()) {
     header('Location: /mi-cuenta.php?tab=direcciones&error=csrf');
@@ -333,6 +349,20 @@ require_once __DIR__ . '/includes/header.php';
                             <div style="font-size:0.65rem;color:#999;margin-top:3px;">
                                 <?= $pedido['cant_items'] ?> producto<?= $pedido['cant_items'] != 1 ? 's' : '' ?>
                             </div>
+                            <?php if ($pedido['estado'] === 'pendiente'): ?>
+                                <button type="button" class="btn-cancelar-pedido"
+                                    data-id="<?= $pedido['id'] ?>"
+                                    data-numero="<?= htmlspecialchars($pedido['numero_pedido']) ?>"
+                                    style="margin-top:8px;background:none;border:none;color:#DC2626;font-size:0.65rem;font-family:'Montserrat',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;padding:0;">
+                                    ✕ Cancelar pedido
+                                </button>
+                            <?php elseif (!in_array($pedido['estado'], ['entregado', 'cancelado', 'expirado'])): ?>
+                                <a href="https://wa.me/5493704097831?text=<?= urlencode('Hola! Necesito ayuda con mi pedido #' . $pedido['numero_pedido']) ?>"
+                                    target="_blank"
+                                    style="display:inline-block;margin-top:8px;color:#25D366;font-size:0.65rem;font-family:'Montserrat',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-decoration:none;">
+                                    💬 ¿Necesitás cancelar? Escribinos
+                                </a>
+                            <?php endif; ?>
                         </div>
                         <span class="pedido-estado" style="background:<?= $estado['bg'] ?>;color:<?= $estado['color'] ?>">
                             <?= $estado['label'] ?>
@@ -495,7 +525,7 @@ require_once __DIR__ . '/includes/header.php';
                                     style="color:var(--dorado);font-size:0.7rem;font-family:'Montserrat',sans-serif;background:none;border:none;cursor:pointer;padding:0;">
                                     ✏️ Editar
                                 </button>
-                                <a href="?eliminar_direccion=<?= $dir['id'] ?>"
+                                <a href="?eliminar_direccion=<?= $dir['id'] ?>&csrf_token=<?= urlencode($_SESSION['csrf_token'] ?? '') ?>"
                                     onclick="return confirm('¿Eliminar esta dirección?')"
                                     style="color:#DC2626;font-size:0.7rem;font-family:'Montserrat',sans-serif;text-decoration:none;">
                                     🗑 Eliminar
@@ -684,6 +714,15 @@ require_once __DIR__ . '/includes/header.php';
             cpStatus.style.color = '#999';
         }
     }
+
+    // Cancelar pedido (autoservicio del cliente)
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-cancelar-pedido');
+        if (!btn) return;
+        if (confirm(`¿Cancelar el pedido #${btn.dataset.numero}? Esta acción no se puede deshacer.`)) {
+            window.location.href = `/mi-cuenta.php?cancelar_pedido=${btn.dataset.id}`;
+        }
+    });
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

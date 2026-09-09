@@ -60,7 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfValidar()) {
     $notas       = trim($_POST['notas'] ?? '');
     $metodo_pago = trim($_POST['metodo_pago'] ?? 'transferencia');
 
-    if (!$nombre || !$apellido || !$email || !$telefono || !$dni || !$calle || !$localidad) {
+    // Si viene un id_direccion_guardada, calle/localidad quedan vacíos
+    // a propósito (esos campos ni se muestran en ese caso) — la
+    // verificación real de que la dirección exista y sea del cliente
+    // se hace más abajo.
+    $usaDireccionGuardada = (int)($_POST['id_direccion_guardada'] ?? 0) > 0;
+
+    if (!$nombre || !$apellido || !$email || !$telefono || !$dni || (!$usaDireccionGuardada && (!$calle || !$localidad))) {
         $error = 'Por favor completá todos los campos obligatorios.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'El email no es válido.';

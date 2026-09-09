@@ -67,13 +67,40 @@ class PedidoRepository
     }
 
     /**
+     * Transiciones de estado válidas. La clave es el estado actual,
+     * el valor es la lista de estados a los que se puede pasar desde ahí.
+     * Cualquier estado no listado acá (entregado, cancelado, expirado)
+     * es terminal: no admite ninguna transición.
+     */
+    private const TRANSICIONES_VALIDAS = [
+        'pendiente'      => ['confirmado', 'cancelado', 'expirado'],
+        'confirmado'     => ['en_preparacion', 'cancelado'],
+        'en_preparacion' => ['enviado', 'demorado', 'cancelado'],
+        'demorado'       => ['en_preparacion', 'enviado', 'cancelado'],
+        'enviado'        => ['entregado'],
+    ];
+
+    /**
+     * Estados desde los que el cliente (no el admin) puede cancelar
+     * su propio pedido. Una vez que entra en preparación, ya hay
+     * trabajo invertido del local — a partir de ahí es solo admin.
+     */
+    // Una vez "confirmado" se considera pagado (por MercadoPago
+    // automático, o porque el admin revisó la transferencia a mano).
+    // A partir de ahí, cancelar ya no es autoservicio: el cliente
+    // tiene que contactarnos directamente.
+    private const ESTADOS_CANCELABLES_POR_CLIENTE = ['pendiente'];
+    /**
      * ÚNICO lugar del sistema que debe cambiar el estado de un pedido.
      * Se encarga de devolver o volver a descontar stock según
-     * corresponda, siempre dentro de una transacción.
+     * corresponda, siempre dentro de una transacción, y valida que
+     * la transición sea permitida según quién la pide.
      *
+     * @param string $origen 'admin' o 'cliente' — determina qué
+     *                        transiciones están permitidas.
      * @return array{ok: bool, error: ?string}
      */
-    public function cambiarEstado(int $id, string $nuevoEstado): array
+    public function cambiarEstado(int $id, string $nuevoEstado, string $origen = 'admin'): array
     {
         $estadosValidos = ['pendiente', 'confirmado', 'en_preparacion', 'demorado', 'enviado', 'entregado', 'cancelado', 'expirado'];
         if (!in_array($nuevoEstado, $estadosValidos)) {
@@ -83,10 +110,7 @@ class PedidoRepository
         $this->db->begin_transaction();
 
         try {
-            // FOR UPDATE bloquea la fila hasta el commit/rollback, para
-            // que dos cambios de estado simultáneos sobre el mismo
-            // pedido no se pisen entre sí.
-            $stmt = $this->db->prepare("SELECT estado FROM pedidos WHERE id = ? FOR UPDATE");
+            $stmt = $this->db->prepare("SELECT estado, id_cliente FROM pedidos WHERE id = ? FOR UPDATE");
             $stmt->bind_param('i', $id);
             $stmt->execute();
             $pedido = $stmt->get_result()->fetch_assoc();
@@ -104,8 +128,28 @@ class PedidoRepository
                 return ['ok' => true, 'error' => null];
             }
 
-            $pasaACancelado = in_array($nuevoEstado, ['cancelado', 'expirado']) && !in_array($estadoActual, ['cancelado', 'expirado']);
-            $saleDeCancelado = in_array($estadoActual, ['cancelado', 'expirado']) && !in_array($nuevoEstado, ['cancelado', 'expirado']);
+            // Los estados terminales (entregado, cancelado, expirado) no
+            // admiten ninguna transición de salida — cubre tanto el caso
+            // viejo de "reactivar cancelado" como cualquier otro intento.
+            $siguientesPermitidos = self::TRANSICIONES_VALIDAS[$estadoActual] ?? [];
+            if (!in_array($nuevoEstado, $siguientesPermitidos)) {
+                $this->db->rollback();
+                $motivo = in_array($estadoActual, ['cancelado', 'expirado'])
+                    ? 'Este pedido está cancelado y no se puede modificar.'
+                    : "No se puede pasar de \"$estadoActual\" a \"$nuevoEstado\".";
+                return ['ok' => false, 'error' => $motivo];
+            }
+
+            // Si es el cliente quien pide el cambio, solo puede cancelar,
+            // y solo desde los estados habilitados para eso.
+            if ($origen === 'cliente') {
+                if ($nuevoEstado !== 'cancelado' || !in_array($estadoActual, self::ESTADOS_CANCELABLES_POR_CLIENTE)) {
+                    $this->db->rollback();
+                    return ['ok' => false, 'error' => 'Ya no podés cancelar este pedido desde acá — contactanos si necesitás ayuda.'];
+                }
+            }
+
+            $pasaACancelado = in_array($nuevoEstado, ['cancelado', 'expirado']);
 
             if ($pasaACancelado) {
                 // Devolver stock de todos los items del pedido.
@@ -118,24 +162,6 @@ class PedidoRepository
                     $upd = $this->db->prepare("UPDATE productos SET stock = stock + ? WHERE id = ?");
                     $upd->bind_param('ii', $item['cantidad'], $item['id_producto']);
                     $upd->execute();
-                }
-            } elseif ($saleDeCancelado) {
-                // Reactivar un pedido cancelado: hay que volver a
-                // descontar el stock, y puede que ya no alcance.
-                $itemsStmt = $this->db->prepare("SELECT id_producto, cantidad FROM pedido_items WHERE id_pedido = ?");
-                $itemsStmt->bind_param('i', $id);
-                $itemsStmt->execute();
-                $items = $itemsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
-                foreach ($items as $item) {
-                    $upd = $this->db->prepare("UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?");
-                    $upd->bind_param('iii', $item['cantidad'], $item['id_producto'], $item['cantidad']);
-                    $upd->execute();
-
-                    if ($upd->affected_rows === 0) {
-                        $this->db->rollback();
-                        return ['ok' => false, 'error' => 'No se puede reactivar: ya no hay stock suficiente de uno o más productos.'];
-                    }
                 }
             }
 
