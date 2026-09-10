@@ -6,6 +6,7 @@ if (!isset($_SESSION['usuario_id'])) {
 }
 
 require_once __DIR__ . '/../autoload.php';
+require_once __DIR__ . '/../includes/csrf.php';
 try {
   $db = Database::getConexion();
   $productoRepo = new ProductoRepository($db);
@@ -439,11 +440,11 @@ try {
                 <td style="white-space:nowrap;">
                   <a href="producto-editar.php?id=<?= $p['id'] ?>" class="btn-accion btn-editar">Editar</a>
                   <?php if ($p['activo']): ?>
-                    <a href="cambiar-estado.php?id=<?= $p['id'] ?>&nuevo_estado=0"
+                    <a href="cambiar-estado.php?id=<?= $p['id'] ?>&nuevo_estado=0&csrf_token=<?= urlencode(csrfToken()) ?>"
                       class="btn-accion btn-pausar"
                       onclick="return confirm('¿Pausar este producto?')">Pausar</a>
                   <?php else: ?>
-                    <a href="cambiar-estado.php?id=<?= $p['id'] ?>&nuevo_estado=1"
+                    <a href="cambiar-estado.php?id=<?= $p['id'] ?>&nuevo_estado=1&csrf_token=<?= urlencode(csrfToken()) ?>"
                       class="btn-accion btn-activar">Activar</a>
                   <?php endif; ?>
                 </td>

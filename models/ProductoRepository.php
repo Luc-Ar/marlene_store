@@ -24,12 +24,14 @@ class ProductoRepository
             LEFT JOIN categorias c ON p.categoria = c.id 
             WHERE 1=1";
 
-        // 2. Filtro por ESTADO (Activos/Inactivos)
-        if (isset($filtros['ver'])) {
-            $estado = ($filtros['ver'] === 'activos') ? 1 : 0;
-            $sql .= " AND p.activo = $estado";
-        }
 
+        // 2. Filtro por ESTADO (Activos/Inactivos/Todos)
+        if (($filtros['ver'] ?? '') === 'activos') {
+            $sql .= " AND p.activo = 1";
+        } elseif (($filtros['ver'] ?? '') === 'inactivos') {
+            $sql .= " AND p.activo = 0";
+        }
+        // Cualquier otro valor (incluido 'todos' o vacío) no filtra por estado.
         // 3. Filtro por BUSCADOR de texto
         if (!empty($filtros['buscar'])) {
             $busqueda = $this->db->real_escape_string($filtros['buscar']);
