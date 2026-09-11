@@ -18,6 +18,46 @@ foreach (file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) 
 
 MercadoPagoConfig::setAccessToken($env['MP_ACCESS_TOKEN'] ?? '');
 
+// ─── Validar que la notificación realmente viene de Mercado Pago ───
+// MP firma cada request con HMAC-SHA256 usando una clave secreta que
+// solo vos y MP conocen. Si no coincide, es un request falso y lo
+// rechazamos antes de tocar la base de datos.
+function validarFirmaMP(string $secret): bool
+{
+    $xSignature = $_SERVER['HTTP_X_SIGNATURE'] ?? '';
+    $xRequestId = $_SERVER['HTTP_X_REQUEST_ID'] ?? '';
+    $dataId     = $_GET['data_id'] ?? '';
+
+    if (!$xSignature || !$xRequestId || !$dataId) {
+        return false;
+    }
+
+    // x-signature llega como "ts=1234567890,v1=abcdef123..."
+    $ts = null;
+    $v1 = null;
+    foreach (explode(',', $xSignature) as $parte) {
+        $partes = explode('=', trim($parte), 2);
+        if (($partes[0] ?? '') === 'ts') $ts = $partes[1] ?? null;
+        if (($partes[0] ?? '') === 'v1') $v1 = $partes[1] ?? null;
+    }
+
+    if (!$ts || !$v1) {
+        return false;
+    }
+
+    $template = "id:{$dataId};request-id:{$xRequestId};ts:{$ts};";
+    $firmaCalculada = hash_hmac('sha256', $template, $secret);
+
+    return hash_equals($firmaCalculada, $v1);
+}
+
+$secretoWebhook = $env['MP_WEBHOOK_SECRET'] ?? '';
+if (!$secretoWebhook || !validarFirmaMP($secretoWebhook)) {
+    error_log("Webhook MP: firma inválida o secreto no configurado — request rechazado");
+    http_response_code(401);
+    exit;
+}
+
 $payload = file_get_contents('php://input');
 $data    = json_decode($payload, true);
 
