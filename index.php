@@ -90,7 +90,7 @@ require_once __DIR__ . '/includes/header.php';
   <div class="cats-grid">
     <?php foreach ($categorias as $cat): ?>
       <a href="catalogo.php?cat=<?= htmlspecialchars($cat['slug']) ?>" class="cat-card" style="text-decoration:none;">
-        <span class="cat-emoji"><?= $cat['icono'] ?? '🛍️' ?></span>
+        <span class="cat-emoji"><?= htmlspecialchars($cat['icono'] ?? '🛍️') ?></span>
         <p class="cat-name"><?= htmlspecialchars($cat['nombre']) ?></p>
         <p class="cat-desc"><?= htmlspecialchars($cat['descripcion'] ?? '') ?></p>
       </a>

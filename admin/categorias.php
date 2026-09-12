@@ -71,7 +71,7 @@ require_once __DIR__ . '/includes/header-admin.php';
                         <strong><?= htmlspecialchars($cat['nombre']) ?></strong><br>
                         <small style="color:#aaa;">/<?= htmlspecialchars($cat['slug']) ?></small>
                     </td>
-                    <td style="font-size:1.4rem;"><?= $cat['icono'] ?? '—' ?></td>
+                    <td style="font-size:1.4rem;"><?= htmlspecialchars($cat['icono'] ?? '—') ?></td>
                     <td><strong>#<?= $cat['orden_display'] ?></strong></td>
                     <td>
                         <span class="<?= $cat['activo'] ? 'badge-activo' : 'badge-inactivo' ?>">
