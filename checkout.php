@@ -564,16 +564,14 @@ require_once __DIR__ . '/includes/header.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="form-group full">
+                    <div class="form-group full" style="position:relative;">
                         <label>Localidad *</label>
-                        <select name="localidad" id="select-localidad-checkout" <?= empty($direcciones_guardadas) ? 'required' : '' ?> disabled
-                            onchange="buscarCPporLocalidad()">
-                            <option value="">— Primero elegí la provincia —</option>
-                        </select>
-                        <span id="loading-localidades"
-                            style="font-size:0.7rem;color:#C9A96E;margin-top:4px;display:none;">
-                            ⏳ Cargando localidades...
-                        </span>
+                        <input type="text" name="localidad" id="input-localidad-checkout"
+                            <?= empty($direcciones_guardadas) ? 'required' : '' ?> disabled
+                            autocomplete="off" placeholder="Primero elegí la provincia"
+                            value="<?= htmlspecialchars($_POST['localidad'] ?? '') ?>">
+                        <div id="sugerencias-localidad-checkout" style="display:none;position:absolute;z-index:50;background:white;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;max-height:220px;overflow-y:auto;width:100%;box-shadow:0 8px 24px rgba(0,0,0,0.08);"></div>
+                      
                     </div>
                     <div class="form-group">
                         <label>Código Postal</label>
@@ -689,41 +687,22 @@ require_once __DIR__ . '/includes/header.php';
         });
     });
 
-    async function cargarLocalidadesCheckout() {
+    function cargarLocalidadesCheckout() {
         const selectProv = document.getElementById('select-provincia-checkout');
-        const selectLoc = document.getElementById('select-localidad-checkout');
-        const loading = document.getElementById('loading-localidades');
+        const inputLoc = document.getElementById('input-localidad-checkout');
         const nombreProv = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
-        if (!nombreProv) return;
-        selectLoc.disabled = true;
-        selectLoc.innerHTML = '<option value="">Cargando...</option>';
-        loading.style.display = 'block';
+
+        if (!nombreProv) {
+            inputLoc.disabled = true;
+            inputLoc.placeholder = 'Primero elegí la provincia';
+            return;
+        }
+
+        inputLoc.disabled = false;
+        inputLoc.value = '';
+        inputLoc.placeholder = 'Escribí al menos 3 letras...';
         document.getElementById('input-cp-checkout').value = '';
         document.getElementById('cp-status').textContent = '';
-        try {
-            const nombre = nombreProv === 'Ciudad de Buenos Aires' ? 'Ciudad Autónoma de Buenos Aires' : nombreProv;
-            const res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(nombre)}&max=500&orden=nombre&campos=nombre`);
-            const data = await res.json();
-            loading.style.display = 'none';
-            if (data.localidades?.length > 0) {
-                const nombres = [...new Set(data.localidades.map(l => l.nombre))].sort();
-                selectLoc.innerHTML = '<option value="">— Seleccioná tu localidad —</option>';
-                nombres.forEach(n => {
-                    const opt = document.createElement('option');
-                    opt.value = n;
-                    opt.textContent = n;
-                    selectLoc.appendChild(opt);
-                });
-                selectLoc.disabled = false;
-            } else throw new Error('Sin localidades');
-        } catch (e) {
-            loading.style.display = 'none';
-            document.getElementById('select-localidad-checkout').closest('.form-group').innerHTML = `
-                    <label>Localidad *</label>
-                    <input type="text" name="localidad" required placeholder="Escribí tu localidad"
-                        style="padding:12px 14px;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;font-family:'Montserrat',sans-serif;font-size:0.85rem;width:100%;">
-                `;
-        }
     }
 
     function seleccionarDireccionGuardada(id) {
@@ -741,10 +720,72 @@ require_once __DIR__ . '/includes/header.php';
         contenedor.querySelector('[name="id_provincia"]').required = true;
         contenedor.querySelector('[name="localidad"]').required = true;
     }
+    // ─── Autocompletado de localidad (buscar mientras se escribe) ───
+    let timeoutBusquedaLocalidad = null;
+
+    function inicializarAutocompleteLocalidad() {
+        const input = document.getElementById('input-localidad-checkout');
+        const caja = document.getElementById('sugerencias-localidad-checkout');
+        const selectProv = document.getElementById('select-provincia-checkout');
+
+        input.addEventListener('input', () => {
+            clearTimeout(timeoutBusquedaLocalidad);
+            const texto = input.value.trim();
+            const nombreProv = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
+
+            if (texto.length < 3 || !nombreProv) {
+                caja.style.display = 'none';
+                caja.innerHTML = '';
+                return;
+            }
+
+            // Esperamos 300ms sin que se siga escribiendo antes de buscar,
+            // así no mandamos un pedido por cada letra tipeada.
+            timeoutBusquedaLocalidad = setTimeout(async () => {
+                try {
+                    const res = await fetch(`buscar-localidades.php?provincia=${encodeURIComponent(nombreProv)}&q=${encodeURIComponent(texto)}`);
+                    const data = await res.json();
+
+                    if (!data.ok || data.localidades.length === 0) {
+                        caja.innerHTML = '<div style="padding:10px 14px;color:#999;font-size:0.8rem;">Sin resultados</div>';
+                        caja.style.display = 'block';
+                        return;
+                    }
+
+                    caja.innerHTML = '';
+                    data.localidades.forEach(loc => {
+                        const item = document.createElement('div');
+                        item.textContent = loc;
+                        item.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:0.85rem;';
+                        item.addEventListener('mouseenter', () => item.style.background = '#FDFAF8');
+                        item.addEventListener('mouseleave', () => item.style.background = 'white');
+                        item.addEventListener('click', () => {
+                            input.value = loc;
+                            caja.style.display = 'none';
+                            buscarCPporLocalidad();
+                        });
+                        caja.appendChild(item);
+                    });
+                    caja.style.display = 'block';
+                } catch (e) {
+                    caja.style.display = 'none';
+                }
+            }, 300);
+        });
+
+        // Cerrar la lista de sugerencias si se hace click afuera
+        document.addEventListener('click', (e) => {
+            if (e.target !== input && !caja.contains(e.target)) {
+                caja.style.display = 'none';
+            }
+        });
+    }
+    document.addEventListener('DOMContentLoaded', inicializarAutocompleteLocalidad);
+
     async function buscarCPporLocalidad() {
         const selectProv = document.getElementById('select-provincia-checkout');
         const provincia = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
-        const localidad = document.getElementById('select-localidad-checkout')?.value;
+        const localidad = document.getElementById('input-localidad-checkout')?.value;
         const inputCP = document.getElementById('input-cp-checkout');
         const cpStatus = document.getElementById('cp-status');
 

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../includes/brute-force-protection.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
+
 if (isset($_SESSION['usuario_id'])) {
   header('Location: /admin/index.php');
   exit;
@@ -202,7 +203,7 @@ if ($minutosBloqueo !== null) {
     <?php endif; ?>
 
     <form method="POST">
-       <?= csrfField() ?>
+      <?= csrfField() ?>
       <div class="form-group">
         <label>Usuario</label>
         <input type="text" name="usuario" required autocomplete="username"

@@ -413,7 +413,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="tab-content" id="tab-direcciones">
         <?php
         $stmt = $conexion->prepare("
-                 SELECT d.*, l.nombre as localidad_nombre
+                 SELECT d.*, l.nombre as localidad_nombre, l.id_provincia
                  FROM direcciones d
                  LEFT JOIN localidades l ON d.id_localidad = l.id
                  WHERE d.id_cliente = ? AND (d.activo = 1 OR d.activo IS NULL)
@@ -458,11 +458,11 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="dato-item">
+                        <div class="dato-item" style="position:relative;">
                             <label>Localidad *</label>
-                            <select name="localidad" id="loc-nueva" required disabled onchange="buscarCPporLocalidadMiCuenta()">
-                                <option value="">— Primero elegí provincia —</option>
-                            </select>
+                            <input type="text" name="localidad" id="loc-nueva" required disabled
+                                autocomplete="off" placeholder="Primero elegí provincia">
+                            <div id="sugerencias-localidad-micuenta" style="display:none;position:absolute;z-index:50;background:white;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;max-height:220px;overflow-y:auto;width:100%;box-shadow:0 8px 24px rgba(0,0,0,0.08);"></div>
                         </div>
                         <div class="dato-item">
                             <label>Código Postal</label>
@@ -608,34 +608,77 @@ require_once __DIR__ . '/includes/header.php';
 
     async function cargarLocMiCuenta() {
         const selectProv = document.getElementById('prov-nueva');
-        const selectLoc = document.getElementById('loc-nueva');
+        const inputLoc = document.getElementById('loc-nueva');
         const nombreProv = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
-        if (!nombreProv) return;
-        selectLoc.disabled = true;
-        selectLoc.innerHTML = '<option value="">Cargando...</option>';
-        try {
-            const nombre = nombreProv === 'Ciudad de Buenos Aires' ? 'Ciudad Autónoma de Buenos Aires' : nombreProv;
-            const res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(nombre)}&max=500&orden=nombre&campos=nombre`);
-            const data = await res.json();
-            if (data.localidades?.length > 0) {
-                const nombres = [...new Set(data.localidades.map(l => l.nombre))].sort();
-                selectLoc.innerHTML = '<option value="">— Seleccioná —</option>';
-                nombres.forEach(n => {
-                    const opt = document.createElement('option');
-                    opt.value = n;
-                    opt.textContent = n;
-                    selectLoc.appendChild(opt);
-                });
-                selectLoc.disabled = false;
-                selectLoc.addEventListener('change', () => {
-                    buscarCpMiCuenta(nombreProv, selectLoc.value);
-                });
-            }
-        } catch (e) {
-            const parent = selectLoc.closest('.dato-item');
-            parent.innerHTML = '<label>Localidad *</label><input type="text" name="localidad" required placeholder="Escribí tu localidad" style="width:100%;padding:10px 14px;border:1.5px solid rgba(200,152,154,0.3);border-radius:6px;font-family:\'Montserrat\',sans-serif;">';
+
+        if (!nombreProv) {
+            inputLoc.disabled = true;
+            inputLoc.placeholder = 'Primero elegí provincia';
+            return;
         }
+
+        inputLoc.disabled = false;
+        inputLoc.value = '';
+        inputLoc.placeholder = 'Escribí al menos 3 letras...';
     }
+    let timeoutBusquedaLocalidadMiCuenta = null;
+
+    function inicializarAutocompleteLocalidadMiCuenta() {
+        const input = document.getElementById('loc-nueva');
+        const caja = document.getElementById('sugerencias-localidad-micuenta');
+        const selectProv = document.getElementById('prov-nueva');
+
+        input.addEventListener('input', () => {
+            clearTimeout(timeoutBusquedaLocalidadMiCuenta);
+            const texto = input.value.trim();
+            const nombreProv = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
+
+            if (texto.length < 3 || !nombreProv) {
+                caja.style.display = 'none';
+                caja.innerHTML = '';
+                return;
+            }
+
+            timeoutBusquedaLocalidadMiCuenta = setTimeout(async () => {
+                try {
+                    const res = await fetch(`buscar-localidades.php?provincia=${encodeURIComponent(nombreProv)}&q=${encodeURIComponent(texto)}`);
+                    const data = await res.json();
+
+                    if (!data.ok || data.localidades.length === 0) {
+                        caja.innerHTML = '<div style="padding:10px 14px;color:#999;font-size:0.8rem;">Sin resultados</div>';
+                        caja.style.display = 'block';
+                        return;
+                    }
+
+                    caja.innerHTML = '';
+                    data.localidades.forEach(loc => {
+                        const item = document.createElement('div');
+                        item.textContent = loc;
+                        item.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:0.85rem;';
+                        item.addEventListener('mouseenter', () => item.style.background = '#FDFAF8');
+                        item.addEventListener('mouseleave', () => item.style.background = 'white');
+                        item.addEventListener('click', () => {
+                            input.value = loc;
+                            caja.style.display = 'none';
+                            const nombreProvActual = selectProv.options[selectProv.selectedIndex]?.dataset.nombre?.trim() || '';
+                            buscarCpMiCuenta(nombreProvActual, loc);
+                        });
+                        caja.appendChild(item);
+                    });
+                    caja.style.display = 'block';
+                } catch (e) {
+                    caja.style.display = 'none';
+                }
+            }, 300);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target !== input && !caja.contains(e.target)) {
+                caja.style.display = 'none';
+            }
+        });
+    }
+    document.addEventListener('DOMContentLoaded', inicializarAutocompleteLocalidadMiCuenta);
     async function buscarCpMiCuenta(provincia, localidad) {
         const contenedor = document.getElementById('cp-nueva').closest('.dato-item');
 
