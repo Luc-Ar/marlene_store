@@ -64,14 +64,45 @@ try {
     ");
 
   $colores_estado = [
-    'pendiente'      => '#E67E22',
-    'confirmado'     => '#27AE60',
+    'pendiente' => '#E67E22',
+    'confirmado' => '#27AE60',
     'en_preparacion' => '#2980B9',
-    'enviado'        => '#8E44AD',
-    'demorado'       => '#E74C3C',
-    'entregado'      => '#2C3E50',
-    'cancelado'      => '#95A5A6',
+    'enviado' => '#8E44AD',
+    'demorado' => '#E74C3C',
+    'entregado' => '#2C3E50',
+    'cancelado' => '#95A5A6',
   ];
+
+  // Comparación con el mes anterior
+  $ventas_mes_anterior = $conexion->query("
+        SELECT COALESCE(SUM(total), 0) as t FROM pedidos
+        WHERE MONTH(fecha_pedido) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+        AND YEAR(fecha_pedido) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+        AND estado IN ('confirmado','enviado','entregado')
+    ")->fetch_assoc()['t'];
+
+  if ($ventas_mes_anterior > 0) {
+    $variacion_mensual = (($ventas_mes - $ventas_mes_anterior) / $ventas_mes_anterior) * 100;
+  } else {
+    $variacion_mensual = $ventas_mes > 0 ? 100 : 0;
+  }
+
+  // Ticket promedio (sobre pedidos ya confirmados/entregados)
+  $ticket_promedio = $conexion->query("
+        SELECT COALESCE(AVG(total), 0) as t FROM pedidos
+        WHERE estado IN ('confirmado','enviado','entregado')
+    ")->fetch_assoc()['t'];
+
+  // Top 5 productos más vendidos (por unidades)
+  $productos_mas_vendidos = $conexion->query("
+        SELECT pi.nombre_producto, SUM(pi.cantidad) as unidades, SUM(pi.subtotal) as facturado
+        FROM pedido_items pi
+        INNER JOIN pedidos p ON pi.id_pedido = p.id
+        WHERE p.estado IN ('confirmado','en_preparacion','enviado','entregado')
+        GROUP BY pi.nombre_producto
+        ORDER BY unidades DESC
+        LIMIT 5
+    ");
 } catch (Exception $e) {
   error_log("Dashboard error: " . $e->getMessage());
   die("Error crítico al cargar el dashboard.");
@@ -100,7 +131,10 @@ $estilos_extra_admin = '
 .welcome-right .label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--dorado); }
 .welcome-right .monto { font-family: "Cormorant Garamond", serif; font-size: 2.6rem; font-weight: 600; line-height: 1; }
 .cards-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; margin-bottom: 28px; }
-.cards-grid-2 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-bottom: 28px; }
+.cards-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 18px; margin-bottom: 28px; }
+.section-titulo { font-family: "Cormorant Garamond", serif; font-size: 1.5rem; color: var(--marlene); margin: 8px 0 16px; }
+.variacion-positiva { color: #27AE60; }
+.variacion-negativa { color: #C0392B; }
 .card {
     background: #fff;
     border-radius: 10px;
@@ -139,6 +173,7 @@ require_once __DIR__ . '/includes/header-admin.php';
   </div>
 </div>
 
+<div class="section-titulo">🔥 Hoy</div>
 <!-- CARDS FILA 1 -->
 <div class="cards-grid">
   <div class="card">
@@ -179,6 +214,37 @@ require_once __DIR__ . '/includes/header-admin.php';
     <p class="card-label">⏳ Pendientes</p>
     <p class="card-number"><?= $total_pendientes ?></p>
     <p class="card-sub"><a href="pedidos.php?estado=pendiente" style="color:#E67E22;text-decoration:none;">Atender ahora →</a></p>
+  </div>
+</div>
+
+<div class="section-titulo">📊 Rendimiento del negocio</div>
+<div class="cards-grid-2">
+  <div class="card" style="border-left-color:<?= $variacion_mensual >= 0 ? '#27AE60' : '#C0392B' ?>;">
+    <p class="card-label"><?= $variacion_mensual >= 0 ? '📈' : '📉' ?> Vs. Mes Anterior</p>
+    <p class="card-number <?= $variacion_mensual >= 0 ? 'variacion-positiva' : 'variacion-negativa' ?>">
+      <?= $variacion_mensual >= 0 ? '+' : '' ?><?= number_format($variacion_mensual, 1, ',', '.') ?>%
+    </p>
+    <p class="card-sub">Mes anterior: $<?= number_format($ventas_mes_anterior, 0, ',', '.') ?></p>
+  </div>
+  <div class="card" style="border-left-color:#C9A96E;">
+    <p class="card-label">🎫 Ticket Promedio</p>
+    <p class="card-number">$<?= number_format($ticket_promedio, 0, ',', '.') ?></p>
+    <p class="card-sub">Por pedido confirmado</p>
+  </div>
+</div>
+<div class="section-titulo">📊 Rendimiento del negocio</div>
+<div class="cards-grid-2">
+  <div class="card" style="border-left-color:<?= $variacion_mensual >= 0 ? '#27AE60' : '#C0392B' ?>;">
+    <p class="card-label"><?= $variacion_mensual >= 0 ? '📈' : '📉' ?> Vs. Mes Anterior</p>
+    <p class="card-number <?= $variacion_mensual >= 0 ? 'variacion-positiva' : 'variacion-negativa' ?>">
+      <?= $variacion_mensual >= 0 ? '+' : '' ?><?= number_format($variacion_mensual, 1, ',', '.') ?>%
+    </p>
+    <p class="card-sub">Mes anterior: $<?= number_format($ventas_mes_anterior, 0, ',', '.') ?></p>
+  </div>
+  <div class="card" style="border-left-color:#C9A96E;">
+    <p class="card-label">🎫 Ticket Promedio</p>
+    <p class="card-number">$<?= number_format($ticket_promedio, 0, ',', '.') ?></p>
+    <p class="card-sub">Por pedido confirmado</p>
   </div>
 </div>
 
@@ -259,6 +325,35 @@ require_once __DIR__ . '/includes/header-admin.php';
       GESTIONAR STOCK
     </a>
   </div>
+</div>
+
+<!-- TOP PRODUCTOS -->
+<div class="panel" style="margin-bottom:28px;">
+  <div class="panel-title">🏆 Productos Más Vendidos</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th style="text-align:right;">Unidades</th>
+        <th style="text-align:right;">Facturado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php if ($productos_mas_vendidos && $productos_mas_vendidos->num_rows > 0): ?>
+        <?php while ($top = $productos_mas_vendidos->fetch_assoc()): ?>
+          <tr>
+            <td style="font-size:0.8rem;"><?= htmlspecialchars($top['nombre_producto']) ?></td>
+            <td style="text-align:right;font-weight:700;"><?= $top['unidades'] ?></td>
+            <td style="text-align:right;color:var(--marlene);font-weight:700;">$<?= number_format($top['facturado'], 0, ',', '.') ?></td>
+          </tr>
+        <?php endwhile; ?>
+      <?php else: ?>
+        <tr>
+          <td colspan="3" style="text-align:center;padding:30px;color:#999;">Todavía no hay ventas registradas.</td>
+        </tr>
+      <?php endif; ?>
+    </tbody>
+  </table>
 </div>
 
 <?php
