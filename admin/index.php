@@ -328,7 +328,7 @@ require_once __DIR__ . '/includes/header-admin.php';
 </div>
 
 <!-- TOP PRODUCTOS -->
-<div class="panel" style="margin-bottom:28px;">
+|<div class="panel" style="margin-bottom:28px;">
   <div class="panel-title">🏆 Productos Más Vendidos</div>
   <table>
     <thead>
