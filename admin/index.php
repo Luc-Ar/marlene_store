@@ -232,21 +232,7 @@ require_once __DIR__ . '/includes/header-admin.php';
     <p class="card-sub">Por pedido confirmado</p>
   </div>
 </div>
-<div class="section-titulo">📊 Rendimiento del negocio</div>
-<div class="cards-grid-2">
-  <div class="card" style="border-left-color:<?= $variacion_mensual >= 0 ? '#27AE60' : '#C0392B' ?>;">
-    <p class="card-label"><?= $variacion_mensual >= 0 ? '📈' : '📉' ?> Vs. Mes Anterior</p>
-    <p class="card-number <?= $variacion_mensual >= 0 ? 'variacion-positiva' : 'variacion-negativa' ?>">
-      <?= $variacion_mensual >= 0 ? '+' : '' ?><?= number_format($variacion_mensual, 1, ',', '.') ?>%
-    </p>
-    <p class="card-sub">Mes anterior: $<?= number_format($ventas_mes_anterior, 0, ',', '.') ?></p>
-  </div>
-  <div class="card" style="border-left-color:#C9A96E;">
-    <p class="card-label">🎫 Ticket Promedio</p>
-    <p class="card-number">$<?= number_format($ticket_promedio, 0, ',', '.') ?></p>
-    <p class="card-sub">Por pedido confirmado</p>
-  </div>
-</div>
+
 
 <!-- GRÁFICO -->
 <div class="grafico-wrap">
